@@ -1,4 +1,4 @@
-package com.example.domain.user.entity;
+package com.example.domain.member.entity;
 
 import com.example.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -8,13 +8,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name="users")
+@Table(name="member")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class User extends BaseEntity {
+public class Member extends BaseEntity {
 
     @Column(nullable = false)
-    private String userName;
+    private String memberName;
 
     @Column(nullable = false)
     private String password;
@@ -31,14 +31,14 @@ public class User extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UserStatus status = UserStatus.ACTIVE;
+    private MemberStatus status = MemberStatus.ACTIVE;
 
     @Column(nullable = false, unique = true)
     private String nickname;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UserRole role = UserRole.USER;
+    private Role role = Role.USER;
 
 
 }
