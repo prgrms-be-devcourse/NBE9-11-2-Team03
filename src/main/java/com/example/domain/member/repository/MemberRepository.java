@@ -7,6 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface MemberRepository extends JpaRepository<Member,Long> {
+import java.util.List;
 
+public interface MemberRepository extends JpaRepository<Member,Long> {
+    Page<Member> findAllByReportCountGreaterThanEqualAndStatus(int reportCount, MemberStatus status,Pageable pageable );
 }
