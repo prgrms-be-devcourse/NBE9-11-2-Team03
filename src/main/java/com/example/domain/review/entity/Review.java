@@ -28,7 +28,8 @@ public class Review extends BaseEntity {
 
     private String image;
 
-    @Min(1) @Max(5)
+    @Min(value = 1, message = "평점은 최소 1점입니다.")
+    @Max(value = 5, message = "평점은 최대 5점입니다.")
     @Column(nullable = false)
     private Integer rating;
 
