@@ -45,6 +45,13 @@ public class AdminController {
                 )
         );
     }
+
+    /**
+     * 전체 회원목록중 신고횟수가 5번 이상이며 활동중인 회원 조회(기본:신고 누적 내림차순)
+     * 파라미터로 페이지,사이즈 조절 가능
+     * @param pageable 페이지수
+     * @return 신고 누적횟수가5회이상인 활동중인 회원목록을 RsData객체
+     */
     @GetMapping("/members/reported")
     public ResponseEntity<RsData<MemberPageResponse>> getReportMemberList(
             @PageableDefault(

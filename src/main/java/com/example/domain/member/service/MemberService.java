@@ -24,8 +24,8 @@ public class MemberService {
 
     //저장된 회원중 신고횟수가 5이상이며, 활동중인 회원 조회하는 함수
     public MemberPageResponse getReportMembers(Pageable pageable) {
-        Page<Member> members = memberRepository.findAllByReportCountGreaterThanEqualAndStatus(5,MemberStatus.ACTIVE,pageable);
-        return MemberPageResponse.from(members);
+        Page<Member> memberPage = memberRepository.findAllByReportCountGreaterThanEqualAndStatus(5,MemberStatus.ACTIVE,pageable);
+        return MemberPageResponse.from(memberPage);
 
 
     }
