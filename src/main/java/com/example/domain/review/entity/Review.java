@@ -1,7 +1,7 @@
 package com.example.domain.review.entity;
 
 import com.example.domain.festival.entity.Festival;
-import com.example.domain.user.entity.User;
+import com.example.domain.member.entity.Member;
 import com.example.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
@@ -17,7 +17,7 @@ public class Review extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
-    private User member;
+    private Member member;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "festival_id", nullable = false)

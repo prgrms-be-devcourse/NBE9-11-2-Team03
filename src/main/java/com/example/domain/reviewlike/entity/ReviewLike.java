@@ -1,7 +1,7 @@
 package com.example.domain.reviewlike.entity;
 
+import com.example.domain.member.entity.Member;
 import com.example.domain.review.entity.Review;
-import com.example.domain.user.entity.User;
 import com.example.global.entity.BaseCreatedEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -22,8 +22,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ReviewLike extends BaseCreatedEntity {
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reporter_id", nullable = false)
-    private Member reporter;
+    @JoinColumn(name = "member_id", nullable = false)
+    private Member member;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_id", nullable = false)
@@ -31,4 +31,3 @@ public class ReviewLike extends BaseCreatedEntity {
 
     //TODOS 생성자 구현
 }
-
