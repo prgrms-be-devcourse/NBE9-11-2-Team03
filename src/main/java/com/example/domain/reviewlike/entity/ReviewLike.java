@@ -1,7 +1,7 @@
 package com.example.domain.reviewlike.entity;
 
 import com.example.domain.review.entity.Review;
-import com.example.domain.user.entity.User;
+import com.example.domain.member.entity.Member;
 import com.example.global.entity.BaseCreatedEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 public class ReviewLike extends BaseCreatedEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
-    private User member;
+    private Member member;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_id", nullable = false)
