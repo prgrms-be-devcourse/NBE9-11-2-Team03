@@ -87,6 +87,7 @@ public class Festival extends BaseEntity {
         this.endDate = endDate;
         this.mapX = mapX;
         this.mapY = mapY;
+        this.lDongRegnCd = lDongRegnCd;
 
         // 기본값 세팅
         this.status = FestivalStatus.UPCOMING;
