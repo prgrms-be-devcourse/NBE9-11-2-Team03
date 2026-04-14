@@ -93,4 +93,7 @@ public class Festival extends BaseEntity {
         this.bookMarkCount = 0;
         this.averageRate = 0.0;
     }
+    public void updateAverageRating(Double averageRating) {
+        this.averageRate = averageRating;
+    }
 }
