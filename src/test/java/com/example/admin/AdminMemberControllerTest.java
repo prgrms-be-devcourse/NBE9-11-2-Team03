@@ -42,7 +42,7 @@ public class AdminMemberControllerTest {
                 .andDo(print());
     }
     @Test
-    @DisplayName("신고순 정렬시 가장 많이 신고받은 회원이 첫번째로 노출 된다.")
+    @DisplayName("신고누적순")
     void t2() throws Exception{
         Member lowReport = new Member("user1", "1234","이름1","user1@test.com", "저신고자", 1);
         Member midReport = new Member("user2", "1234","이름2","user2@test.com", "중신고자", 5);
@@ -50,9 +50,10 @@ public class AdminMemberControllerTest {
         memberRepository.saveAll(List.of(lowReport, midReport, highReport));
 
         mockMvc.perform(get("/api/admin/members/reported")
-                        .param("page", "0")
-                        .param("sort", "reportCount,desc"))
+                        .param("page", "0"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.message").value("신고 누적회원 조회 성공"))
                 .andExpect(jsonPath("$.data.content[0].nickname").value("고신고자"))
                 .andExpect(jsonPath("$.data.content[0].reportCount").value(10))
                 .andExpect(jsonPath("$.data.content[1].nickname").value("중신고자"))
