@@ -4,8 +4,7 @@ import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.repository.MemberRepository;
-import com.example.domain.review.dto.ReviewCreateRequestDto;
-import com.example.domain.review.dto.ReviewResponseDto;
+import com.example.domain.review.dto.*;
 import com.example.domain.review.entity.Review;
 import com.example.domain.review.entity.ReviewStatus;
 import com.example.domain.review.repository.ReviewRepository;
@@ -13,7 +12,6 @@ import com.example.global.exception.BadRequestException;
 import com.example.global.exception.ForbiddenException;
 import com.example.global.exception.UnauthorizedException;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -70,7 +68,10 @@ public class ReviewService {
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
-        Page<Review> reviewPage = reviewRepository.findByFestivalId(festivalId, pageRequest);
+        Page<Review> reviewPage = reviewRepository.findByFestivalIdAndStatus(
+                festivalId,
+                ReviewStatus.ACTIVE,
+                pageRequest);
 
         return ReviewPageResponseDto.builder()
                 .festivalId(festivalId)
@@ -84,6 +85,10 @@ public class ReviewService {
                 .hasNext(reviewPage.hasNext())
                 .build();
     }
+
+
+
+    //리뷰 수정
     @Transactional
     public ReviewUpdateResponseDto updateReview(Long reviewId, Long memberId, ReviewUpdateRequestDto requestDto) {
 
@@ -128,6 +133,48 @@ public class ReviewService {
         festival.updateAverageRating(averageRating == null ? 0.0 : averageRating);
 
         return ReviewUpdateResponseDto.from(review);
+    }
+
+    //리뷰 삭제
+    @Transactional
+    public ReviewDeleteResponseDto deleteReview(Long reviewId, Long memberId) {
+
+        // 1. 로그인 확인
+        if (memberId == null) {
+            throw new UnauthorizedException("로그인이 필요합니다.");
+        }
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new UnauthorizedException("로그인이 필요합니다."));
+
+        // 2. 리뷰 존재 여부 확인
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 리뷰입니다."));
+
+        // 3. 작성자 본인 여부 확인
+        if (!review.getMember().getId().equals(member.getId())) {
+            throw new ForbiddenException("본인이 작성한 리뷰만 삭제할 수 있습니다.");
+        }
+
+        // 4. 이미 삭제된 리뷰인지 확인
+        if (review.getStatus() == ReviewStatus.DELETED) {
+            throw new BadRequestException("이미 삭제된 리뷰입니다.");
+        }
+
+        // 5. 블라인드 리뷰 삭제 불가
+        if (review.getStatus() == ReviewStatus.BLIND) {
+            throw new ForbiddenException("블라인드 처리된 리뷰는 삭제할 수 없습니다.");
+        }
+
+        // 6. 리뷰 논리 삭제
+        review.deleteReview();
+
+        // 7. 축제 평균 평점 재계산
+        Festival festival = review.getFestival();
+        Double averageRating = reviewRepository.calculateAverageRatingByFestivalId(festival.getId());
+        festival.updateAverageRating(averageRating == null ? 0.0 : averageRating);
+
+        return ReviewDeleteResponseDto.from(review);
     }
 
 

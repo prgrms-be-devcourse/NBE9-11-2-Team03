@@ -60,6 +60,10 @@ public class Review extends BaseEntity {
         this.rating = rating;
     }
 
+    public void deleteReview() {
+        this.status = ReviewStatus.DELETED;
+    }
+
 
 
 

@@ -59,9 +59,6 @@ public class Festival extends BaseEntity {
     @Column(nullable = false)
     private Integer viewCount = 0;
 
-    @Builder.Default
-    @Column(nullable = false)
-    private Integer bookmarkCount = 0;
 
     @Builder.Default
     @Column(nullable = false)
