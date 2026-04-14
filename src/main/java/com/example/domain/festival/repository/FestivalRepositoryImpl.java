@@ -39,7 +39,8 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
                         areaContains(searchDto.area()),
                         statusEquals(searchDto.status()),
                         monthEquals(searchDto.month()),
-                        keywordContains(searchDto.keyword())
+                        keywordContains(searchDto.keyword()),
+                        nearBy(searchDto.mapX(), searchDto.mapY(), searchDto.radiusKm())
                 )
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -53,10 +54,25 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
                         areaContains(searchDto.area()),
                         statusEquals(searchDto.status()),
                         monthEquals(searchDto.month()),
-                        keywordContains(searchDto.keyword())
+                        keywordContains(searchDto.keyword()),
+                        nearBy(searchDto.mapX(), searchDto.mapY(), searchDto.radiusKm())
                 );
 
         return PageableExecutionUtils.getPage(content, pageable, contentQuery::fetchOne);
+    }
+
+    @Override
+    public List<Festival> findNearbyFestivals(FestivalSearchDto searchDto) {
+        return queryFactory
+                .selectFrom(festival)
+                .where(
+//                        areaContains(searchDto.area()),
+//                        statusEquals(searchDto.status()),
+//                        monthEquals(searchDto.month()),
+//                        keywordContains(searchDto.keyword()),
+                        nearBy(searchDto.mapX(), searchDto.mapY(), searchDto.radiusKm())
+                )
+                .fetch();
     }
 
     private OrderSpecifier<?>[] festivalSort(Pageable pageable) {
@@ -78,7 +94,7 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
                 switch (order.getProperty()) {
                     case "viewCount" -> orderSpecifiers.add(new OrderSpecifier<>(direction, festival.viewCount));
                     case "startDate" -> orderSpecifiers.add(new OrderSpecifier<>(direction, festival.startDate));
-                    case "bookmarkCount" ->
+                    case "bookMarkCount" ->
                             orderSpecifiers.add(new OrderSpecifier<>(direction, festival.bookMarkCount));
                 }
             }
@@ -103,6 +119,22 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
             );
         }
         return orderSpecifiers.toArray(new OrderSpecifier[0]);
+    }
+
+    public BooleanExpression nearBy(Double myMapx, Double myMapY, Double radiusKm){
+        if(myMapx==null||myMapY==null||radiusKm==null){
+            return null;
+        }
+        double latChange = radiusKm / 111.0; // 위도(Y) 변화량
+        double lonChange = radiusKm / 88.0;  // 경도(X) 변화량
+
+        double minX = myMapx - lonChange;
+        double maxX = myMapx + lonChange;
+        double minY = myMapY - latChange;
+        double maxY = myMapY + latChange;
+
+        return festival.mapX.between(minX, maxX)
+                .and(festival.mapY.between(minY, maxY));
     }
 
     private BooleanExpression keywordContains(String keyword) {

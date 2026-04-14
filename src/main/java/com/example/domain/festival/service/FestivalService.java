@@ -8,6 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @AllArgsConstructor
 public class FestivalService {
@@ -18,9 +20,12 @@ public class FestivalService {
         return festivalRepository.searchFestivals(searchDto, pageable);
     }
 
-
     public Festival getFestival(Long id) {
         return festivalRepository.findById(id)
                 .orElseThrow(()-> new IllegalArgumentException("존재하지 않는 축제입니다."));
+    }
+
+    public List<Festival> getNearbyMarkers(FestivalSearchDto searchDto){
+        return festivalRepository.findNearbyFestivals(searchDto);
     }
 }

@@ -1,5 +1,6 @@
 package com.example.domain.festival.controller;
 
+import com.example.domain.festival.dto.FestivalMarkerDto;
 import com.example.domain.festival.dto.FestivalResponseDto;
 import com.example.domain.festival.dto.FestivalSearchDto;
 import com.example.domain.festival.entity.Festival;
@@ -64,7 +65,20 @@ public class FestivalController {
         FestivalResponseDto responseDto = FestivalResponseDto.from(festival);
 
         RsData<FestivalResponseDto> rsData = new RsData<>("200", "축제 상세 조회 성공", responseDto);
+        return ResponseEntity.ok(rsData);
+    }
 
+    @GetMapping("/nearby")
+    public ResponseEntity<RsData<List<FestivalMarkerDto>>> getNearbyFestivals(
+            @ModelAttribute FestivalSearchDto searchDto
+    ){
+        List<Festival> festivals = festivalService.getNearbyMarkers(searchDto);
+
+        List<FestivalMarkerDto> markerDtoList = festivals.stream()
+                .map(FestivalMarkerDto::from)
+                .toList();
+
+        RsData<List<FestivalMarkerDto>> rsData = new RsData<>("200", "주변 축제 조회 성공", markerDtoList);
         return ResponseEntity.ok(rsData);
     }
 }
