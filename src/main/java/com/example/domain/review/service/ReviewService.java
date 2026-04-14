@@ -10,6 +10,7 @@ import com.example.domain.review.dto.ReviewPageResponseDto;
 import com.example.domain.review.dto.ReviewResponseDto;
 import com.example.domain.review.entity.Review;
 import com.example.domain.review.repository.ReviewRepository;
+import com.example.global.exception.UnauthorizedException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -49,8 +50,18 @@ public class ReviewService {
     }
 
     //리뷰 목록조회
-    public ReviewPageResponseDto getReviewList(Long festivalId, int page, int size) {
+    public ReviewPageResponseDto getReviewList(Long festivalId, Long memberId, int page, int size) {
 
+        // 1. 로그인 체크
+        if (memberId == null) {
+            throw new UnauthorizedException("리뷰 조회는 로그인 후 이용 가능합니다.");
+        }
+
+        // 2. 축제 존재 체크
+        festivalRepository.findById(festivalId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 축제입니다."));
+
+        // 3. 리뷰 조회
         PageRequest pageRequest = PageRequest.of(
                 page,
                 size,
