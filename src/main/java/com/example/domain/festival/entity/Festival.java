@@ -58,7 +58,7 @@ public class Festival extends BaseEntity {
     private Integer viewCount = 0;
 
     @Column(nullable = false)
-    private Integer likeCount = 0;
+    private Integer bookMarkCount = 0;
 
     @Column(nullable = false)
     private Double averageRate = 0.0;
