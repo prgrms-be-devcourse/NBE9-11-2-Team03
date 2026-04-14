@@ -44,7 +44,7 @@ public class FestivalRepositoryDuplicateTest {
         );
 
         // 첫 번째 저장
-        Festival firstFestival = converter.toEntity(firstItem);
+        Festival firstFestival = converter.toEntityFromListItem(firstItem);
         festivalRepository.save(firstFestival);
 
         // DB에 실제 반영되도록 flush
@@ -52,7 +52,7 @@ public class FestivalRepositoryDuplicateTest {
         em.clear();
 
         // when & then
-        Festival secondFestival = converter.toEntity(secondItem);
+        Festival secondFestival = converter.toEntityFromListItem(secondItem);
 
         festivalRepository.save(secondFestival);
 

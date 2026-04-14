@@ -27,10 +27,10 @@ public class FestivalApiConverterTest {
         item.setMapx("128.87");
         item.setMapy("35.23");
         item.setEventstartdate("20260430");
-        item.setEventenddate("20260503");
+        item.setEventenddate("20260530");
 
         // when
-        Festival festival = converter.toEntity(item);
+        Festival festival = converter.toEntityFromListItem(item);
 
         // then
         assertThat(festival.getContentId()).isEqualTo("694576");

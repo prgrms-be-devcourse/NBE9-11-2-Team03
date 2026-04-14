@@ -10,13 +10,14 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
+//외부 DTO → 내부 엔티티 변환 클래스
 @Component
 public class FestivalApiConverter {
     //공공 API 날짜 문자열 포맷 ex. 20260430
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     // 외부 API DTO를 신규 Festival 엔티티로 변환(DB 초기 저장)
-    public Festival toEntity(FestivalApiItem item) {
+    public Festival toEntityFromListItem(FestivalApiItem item) {
         LocalDateTime startDate = parseStartDate(item.getEventstartdate());
         LocalDateTime endDate = parseEndDate(item.getEventenddate());
 
@@ -39,24 +40,33 @@ public class FestivalApiConverter {
     }
 
     //기존 Festival 엔티티에 외부 API 값을 반영 (contendId 기준으로 이미 존재하는 축제를 Update할 때)
-    public void updateEntity(Festival festival, FestivalApiItem item) {
+    public void updateFromListItem(Festival festival, FestivalApiItem item) {
         LocalDateTime startDate = parseStartDate(item.getEventstartdate());
         LocalDateTime endDate = parseEndDate(item.getEventenddate());
 
         festival.updateFestivalInfo(
                 safeTrim(item.getTitle()),
-                defaultText(item.getOverview()),
+                festival.getOverview(),
                 nullableText(item.getTel()),
                 nullableText(item.getFirstimage()),
                 resolveThumbnail(item.getFirstimage2(), item.getFirstimage()),
                 buildAddress(item.getAddr1(), item.getAddr2()),
-                nullableText(item.getHomepage()),
+                festival.getHomepageUrl(),
                 startDate,
                 endDate,
                 parseDouble(item.getMapx()),
                 parseDouble(item.getMapy()),
                 nullableText(item.getLDongRegnCd()),
                 calculateStatus(startDate, endDate)
+        );
+    }
+
+    //상세 API 기반 상세 정보 보강
+    public void updateDetailFields(Festival festival, FestivalApiItem item) {
+        festival.updateFestivalDetailInfo(
+                defaultText(item.getOverview()),
+                nullableText(item.getHomepage()),
+                nullableText(item.getTel())
         );
     }
 

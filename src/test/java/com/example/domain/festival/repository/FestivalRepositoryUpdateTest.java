@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @Transactional
 public class FestivalRepositoryUpdateTest {
-    // 목적. 같은 contentId를 가진 기존 축제가 있을 때, update 로직이 정상적으로 기존 데이터를 수정하는지 검증
+    // 목적. 같은 contentId를 가진 기존 축제가 있을 때, 목록 동기화용 updateFromListItem 로직이 정상적으로 기존 데이터를 수정하는지 검증
     @Autowired
     private FestivalRepository festivalRepository;
 
@@ -27,7 +27,7 @@ public class FestivalRepositoryUpdateTest {
     private EntityManager em;
 
     @Test
-    @DisplayName("같은 contentId 기존 데이터가 있으면 updateEntity로 수정된다")
+    @DisplayName("같은 contentId 기존 데이터가 있으면 updateFromListItem로 수정된다")
     void update_existing_festival_test() {
         // given
         String contentId = "update_test_content_id";
@@ -41,7 +41,7 @@ public class FestivalRepositoryUpdateTest {
                 "대성동"
         );
 
-        Festival originalFestival = converter.toEntity(originalItem);
+        Festival originalFestival = converter.toEntityFromListItem(originalItem);
         festivalRepository.save(originalFestival);
         em.flush();
         em.clear();
@@ -59,7 +59,7 @@ public class FestivalRepositoryUpdateTest {
         Festival existingFestival = festivalRepository.findByContentId(contentId)
                 .orElseThrow();
 
-        converter.updateEntity(existingFestival, updatedItem);
+        converter.updateFromListItem(existingFestival, updatedItem);
 
         em.flush();
         em.clear();
@@ -70,7 +70,7 @@ public class FestivalRepositoryUpdateTest {
 
         assertThat(updatedFestival.getContentId()).isEqualTo(contentId);
         assertThat(updatedFestival.getTitle()).isEqualTo("수정된 축제 제목");
-        assertThat(updatedFestival.getOverview()).isEqualTo("수정된 설명");
+        assertThat(updatedFestival.getOverview()).isEqualTo("기존 설명");
         assertThat(updatedFestival.getAddress()).isEqualTo("경상남도 김해시 봉황동");
     }
 

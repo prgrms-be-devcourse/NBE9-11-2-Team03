@@ -12,6 +12,7 @@ import org.springframework.test.annotation.Rollback;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
+//@Transactional
 @Rollback(false)
 public class FestivalRepositoryTest {
     // 목적. DB 저장 테스트
@@ -40,7 +41,7 @@ public class FestivalRepositoryTest {
         item.setEventstartdate("20260430");
         item.setEventenddate("20260530");
 
-        Festival festival = converter.toEntity(item);
+        Festival festival = converter.toEntityFromListItem(item);
         festivalRepository.saveAndFlush(festival);
 
         Festival saved = festivalRepository.findByContentId(testContentId)
