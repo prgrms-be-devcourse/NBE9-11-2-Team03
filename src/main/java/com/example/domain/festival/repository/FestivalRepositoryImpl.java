@@ -79,7 +79,7 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
                     case "viewCount" -> orderSpecifiers.add(new OrderSpecifier<>(direction, festival.viewCount));
                     case "startDate" -> orderSpecifiers.add(new OrderSpecifier<>(direction, festival.startDate));
                     case "bookmarkCount" ->
-                            orderSpecifiers.add(new OrderSpecifier<>(direction, festival.bookmarkCount));
+                            orderSpecifiers.add(new OrderSpecifier<>(direction, festival.bookMarkCount));
                 }
             }
         }else{
