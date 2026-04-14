@@ -139,6 +139,7 @@ public class ReviewService {
 
 
 
+    //리뷰를 검토하여 블라인드처리, 신고횟수 초기화하는 함수
     @Transactional
     public AdminReviewBlindRes processReviewAction(Long reviewId, String action) {
         Review review = reviewRepository.findById(reviewId)
