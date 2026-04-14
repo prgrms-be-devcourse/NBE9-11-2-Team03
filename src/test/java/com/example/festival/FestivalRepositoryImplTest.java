@@ -1,4 +1,4 @@
-package com.example;
+package com.example.festival;
 
 import com.example.domain.festival.dto.FestivalSearchDto;
 import com.example.domain.festival.entity.Festival;
