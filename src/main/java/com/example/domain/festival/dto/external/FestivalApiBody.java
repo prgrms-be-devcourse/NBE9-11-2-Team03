@@ -28,6 +28,13 @@ public class FestivalApiBody {
         }
 
         // 정상 페이지에서 객체로 오는 경우
-        this.items = new ObjectMapper().convertValue(itemsNode, FestivalApiItems.class);
+        try {
+            this.items = new ObjectMapper().treeToValue(itemsNode, FestivalApiItems.class);
+        } catch (Exception e) {
+            System.out.println("items 파싱 실패: " + itemsNode);
+            e.printStackTrace();
+            this.items = null;
+        }
     }
+
 }

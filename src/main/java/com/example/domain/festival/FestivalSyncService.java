@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
@@ -68,7 +69,7 @@ public class FestivalSyncService {
 
     //상세 API 기반 상세 정보 보강
     public FestivalSyncResult enrichFestivalDetails() {
-        List<Festival> festivals = festivalRepository.findAll(); //TODOS: 추후, 페이지 단위 조회/조건 조회 등... 확장 고려
+        List<Festival> festivals = festivalRepository.findAll(); //TODOS: API 호출량에 다른 rate limit 고려해야함 => 추후, 페이지 단위 조회/조건 조회 등... 확장 고려
 
         int updatedCount = 0;
 
@@ -100,13 +101,13 @@ public class FestivalSyncService {
         return new FestivalSyncResult(festivals.size(), 0, updatedCount);
     }
 
-
-    //###테스트코드 <상세 보강 결과 1개만 확인>
+    //상세 API 기반 상세 정보 보강 (특정 축제 1건에 대해한 상세 정보를 보강한다)
+    //특정 데이터에 문제가 발생했을 때 부분 재동기화 용도로 활용, API 호출을 1건만 수행하므로 rate limit(429) 부담이 적음
     @Transactional
     public void enrichFestivalDetailByContentId(String contentId) {
         Festival festival = festivalRepository.findByContentId(contentId)
-                .orElseThrow();
-
+                .orElseThrow(() -> new NoSuchElementException(
+                        "해당 contentId의 축제를 찾을 수 없습니다. contentId=" + contentId));
         try {
             FestivalApiResponse response =
                     festivalApiClient.fetchFestivalDetail(contentId);

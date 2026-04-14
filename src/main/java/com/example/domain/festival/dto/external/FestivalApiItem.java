@@ -1,5 +1,6 @@
 package com.example.domain.festival.dto.external;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter //Test용도 (FestivalApiConverterTest)
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true) //역직렬화시, 안쓰는 필드 무시
 public class FestivalApiItem {
     private String contentid;
     private String title;
