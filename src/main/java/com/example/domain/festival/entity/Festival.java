@@ -5,15 +5,15 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 public class Festival extends BaseEntity {
 
     @Column(nullable = false, unique = true)
@@ -50,16 +50,20 @@ public class Festival extends BaseEntity {
 
     private String lDongRegnCd; // 법정동 코드
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private FestivalStatus status = FestivalStatus.UPCOMING;
 
+    @Builder.Default
     @Column(nullable = false)
     private Integer viewCount = 0;
 
+    @Builder.Default
     @Column(nullable = false)
-    private Integer likeCount = 0;
+    private Integer bookmarkCount = 0;
 
+    @Builder.Default
     @Column(nullable = false)
     private Integer bookMarkCount = 0;
 
