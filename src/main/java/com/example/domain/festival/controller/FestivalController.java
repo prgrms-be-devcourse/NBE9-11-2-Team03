@@ -2,16 +2,14 @@ package com.example.domain.festival.controller;
 
 import com.example.domain.festival.dto.FestivalResponseDto;
 import com.example.domain.festival.dto.FestivalSearchDto;
+import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.service.FestivalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,5 +52,19 @@ public class FestivalController {
 
         return ResponseEntity.ok(response);
 
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> getFestivalDetail(
+            @PathVariable Long id
+    ){
+        Festival festival = festivalService.getFestival(id);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("status", 200);
+        response.put("message", "축제 상세 조회 성공");
+        response.put("data", FestivalResponseDto.from(festival));
+
+        return ResponseEntity.ok(response);
     }
 }
