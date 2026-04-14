@@ -94,7 +94,7 @@ public class Festival extends BaseEntity {
         // 기본값 세팅
         this.status = FestivalStatus.UPCOMING;
         this.viewCount = 0;
-        this.likeCount = 0;
+        this.bookmarkCount = 0;
         this.averageRate = 0.0;
     }
 }
