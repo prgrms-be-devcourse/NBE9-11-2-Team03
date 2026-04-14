@@ -3,6 +3,8 @@ package com.example.domain.admin.controller;
 import com.example.domain.member.dto.MemberPageResponse;
 import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.member.service.MemberService;
+import com.example.domain.review.dto.AdminReviewReportPageRes;
+import com.example.domain.review.service.ReviewService;
 import com.example.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Admin", description = "관리자API")
 public class AdminController {
     private final MemberService memberService;
+    private final ReviewService reviewService;
 
 
 
@@ -71,6 +74,26 @@ public class AdminController {
                         "200",
                         "신고 누적회원 조회 성공",
                         memberList
+                )
+        );
+    }
+
+    /**
+     *관리자가 신고 횟수가 일정횟수(현재는 5 ) 이상인 리뷰목록을 조회할수있다.(신고 순 내림차순)
+     * @param pageable 페이지수, 사이즈등을 입력받을 수 있다.
+     * @return 신고 누적횟수가5회이상인 활동중인 리뷰목록을 RsData객체
+     */
+    @GetMapping("/reviews/reported")
+    @Operation(summary = "누적신고된 리뷰 조회",description = "신고횟수가N개 이상인 리뷰를 조회합니다.")
+    public ResponseEntity<RsData<AdminReviewReportPageRes>> getReportReview(
+            @PageableDefault(size = 10, sort = "reportCount", direction = Sort.Direction.DESC) Pageable pageable)
+    {
+        AdminReviewReportPageRes reviewList = reviewService.getReportReview(pageable);
+        return ResponseEntity.ok(
+                new RsData<>(
+                        "200",
+                        "신고된 리뷰 목록 조회가 완료되었습니다.",
+                        reviewList
                 )
         );
     }

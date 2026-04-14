@@ -4,14 +4,19 @@ import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.repository.MemberRepository;
+import com.example.domain.review.dto.AdminReviewReportPageRes;
 import com.example.domain.review.dto.ReviewCreateRequestDto;
 import com.example.domain.review.dto.ReviewListResponseDto;
 import com.example.domain.review.dto.ReviewPageResponseDto;
 import com.example.domain.review.dto.ReviewResponseDto;
 import com.example.domain.review.entity.Review;
+import com.example.domain.review.entity.ReviewStatus;
 import com.example.domain.review.repository.ReviewRepository;
 import com.example.global.exception.UnauthorizedException;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -47,6 +52,11 @@ public class ReviewService {
 
         return new ReviewResponseDto(savedReview);
 
+    }
+    // 신고횟수가 5이상인 review리스트를 DTO로 반환하여 주는 함수
+    public AdminReviewReportPageRes getReportReview(Pageable pageable) {
+        Page<Review> reviews = reviewRepository.findAllByReportCountGreaterThanEqualAndStatus(5,ReviewStatus.ACTIVE,pageable);
+        return AdminReviewReportPageRes.from(reviews);
     }
 
     //리뷰 목록조회
