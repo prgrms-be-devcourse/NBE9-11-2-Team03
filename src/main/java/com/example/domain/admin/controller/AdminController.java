@@ -1,23 +1,20 @@
 package com.example.domain.admin.controller;
 
-import com.example.domain.member.dto.MemberPageResponse;
-import com.example.domain.member.repository.MemberRepository;
+import com.example.domain.admin.dto.AdminReviewBlindRes;
+import com.example.domain.admin.dto.MemberPageResponse;
+import com.example.domain.admin.dto.ReviewProcessRequest;
 import com.example.domain.member.service.MemberService;
-import com.example.domain.review.dto.AdminReviewReportPageRes;
+import com.example.domain.admin.dto.AdminReviewReportPageRes;
 import com.example.domain.review.service.ReviewService;
 import com.example.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -28,10 +25,10 @@ public class AdminController {
     private final ReviewService reviewService;
 
 
-
     /**
-     *전체 회원 목록을 조회(기본 최근 생성일순,)
-     *파라미터로 페이지번호,정렬방법,사이즈 변경 가능
+     * 전체 회원 목록을 조회(기본 최근 생성일순,)
+     * 파라미터로 페이지번호,정렬방법,사이즈 변경 가능
+     *
      * @param pageable 페이지수 및  정렬정보(page,sort)
      * @return 회원 목록 정보를 담은 RsData객체
      */
@@ -56,6 +53,7 @@ public class AdminController {
     /**
      * 전체 회원목록중 신고횟수가 5번 이상이며 활동중인 회원 조회(기본:신고 누적 내림차순)
      * 파라미터로 페이지,사이즈 조절 가능
+     *
      * @param pageable 페이지수
      * @return 신고 누적횟수가5회이상인 활동중인 회원목록을 RsData객체
      */
@@ -67,7 +65,7 @@ public class AdminController {
                     sort = "reportCount",
                     direction = Sort.Direction.DESC
             ) Pageable pageable
-    ){
+    ) {
         MemberPageResponse memberList = memberService.getReportMembers(pageable);
         return ResponseEntity.ok(
                 new RsData<>(
@@ -79,15 +77,15 @@ public class AdminController {
     }
 
     /**
-     *관리자가 신고 횟수가 일정횟수(현재는 5 ) 이상인 리뷰목록을 조회할수있다.(신고 순 내림차순)
+     * 관리자가 신고 횟수가 일정횟수(현재는 5 ) 이상인 리뷰목록을 조회할수있다.(신고 순 내림차순)
+     *
      * @param pageable 페이지수, 사이즈등을 입력받을 수 있다.
      * @return 신고 누적횟수가5회이상인 활동중인 리뷰목록을 RsData객체
      */
     @GetMapping("/reviews/reported")
-    @Operation(summary = "누적신고된 리뷰 조회",description = "신고횟수가N개 이상인 리뷰를 조회합니다.")
+    @Operation(summary = "누적신고된 리뷰 조회", description = "신고횟수가N개 이상인 리뷰를 조회합니다.")
     public ResponseEntity<RsData<AdminReviewReportPageRes>> getReportReview(
-            @PageableDefault(size = 10, sort = "reportCount", direction = Sort.Direction.DESC) Pageable pageable)
-    {
+            @PageableDefault(size = 10, sort = "reportCount", direction = Sort.Direction.DESC) Pageable pageable) {
         AdminReviewReportPageRes reviewList = reviewService.getReportReview(pageable);
         return ResponseEntity.ok(
                 new RsData<>(
@@ -97,4 +95,26 @@ public class AdminController {
                 )
         );
     }
+
+    @PatchMapping("/reviews/{reviewId}/status")
+    @Operation(summary = "악성리뷰 블라인드처리", description = "관리자가 악성리뷰를 블라인드처리할수있다.")
+    public ResponseEntity<RsData<AdminReviewBlindRes>> processReview(
+            @PathVariable Long reviewId,
+            @RequestBody ReviewProcessRequest req
+    ) {
+        AdminReviewBlindRes res = reviewService.processReviewAction(reviewId, req.action());
+
+        String msg = "Blind".equalsIgnoreCase(req.action())
+                ? "리뷰가 블라인드 처리되었습니다."
+                : "리뷰 신고횟수가 초기화 되었습니다.";
+        return ResponseEntity.ok(
+                new RsData<>(
+                        "200",
+                        msg,
+                        res
+                )
+        );
+    }
+
+
 }

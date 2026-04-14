@@ -1,4 +1,4 @@
-package com.example.domain.review.dto;
+package com.example.domain.admin.dto;
 
 import com.example.domain.review.entity.Review;
 import org.springframework.data.domain.Page;
