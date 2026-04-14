@@ -1,5 +1,6 @@
 package com.example.domain.festival.dto.external;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,6 +20,7 @@ public class FestivalApiItem {
     private String firstimage2;
     private String mapx;
     private String mapy;
+    @JsonProperty("lDongRegnCd") //Jackson 기본 전략: snake_case ↔ camelCase 변환, Naming 정책이 애매해 DTO 매핑이 안되는 것을 방지
     private String lDongRegnCd;
     private String eventstartdate;
     private String eventenddate;

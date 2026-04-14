@@ -3,12 +3,17 @@ package com.example.domain.festival.converter;
 import com.example.domain.festival.dto.external.FestivalApiItem;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.entity.FestivalStatus;
+import org.jsoup.Jsoup;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 //외부 DTO → 내부 엔티티 변환 클래스
 @Component
@@ -25,11 +30,11 @@ public class FestivalApiConverter {
                 .contentId(safeTrim(item.getContentid()))
                 .title(safeTrim(item.getTitle()))
                 .overview(defaultText(item.getOverview()))
-                .contactNumber(nullableText(item.getTel()))
+                .contactNumber(normalizeContactNumber(item.getTel()))
                 .firstImageUrl(nullableText(item.getFirstimage()))
                 .thumbnailUrl(resolveThumbnail(item.getFirstimage2(), item.getFirstimage()))
                 .address(buildAddress(item.getAddr1(), item.getAddr2()))
-                .homepageUrl(nullableText(item.getHomepage()))
+                .homepageUrl(extractHomepageUrl(item.getHomepage()))
                 .startDate(startDate)
                 .endDate(endDate)
                 .mapX(parseDouble(item.getMapx()))
@@ -47,7 +52,7 @@ public class FestivalApiConverter {
         festival.updateFestivalInfo(
                 safeTrim(item.getTitle()),
                 festival.getOverview(),
-                nullableText(item.getTel()),
+                normalizeContactNumber(item.getTel()),
                 nullableText(item.getFirstimage()),
                 resolveThumbnail(item.getFirstimage2(), item.getFirstimage()),
                 buildAddress(item.getAddr1(), item.getAddr2()),
@@ -65,10 +70,92 @@ public class FestivalApiConverter {
     public void updateDetailFields(Festival festival, FestivalApiItem item) {
         festival.updateFestivalDetailInfo(
                 defaultText(item.getOverview()),
-                nullableText(item.getHomepage()),
-                nullableText(item.getTel())
+                extractHomepageUrl(item.getHomepage()),
+                normalizeContactNumber(item.getTel())
         );
     }
+
+    // Homepage 필드 데이터 정제 코드
+    private String extractHomepageUrl(String homepage) {
+        if (homepage == null || homepage.isBlank()) {
+            return null;
+        }
+
+        // HTML 파싱
+        var doc = Jsoup.parse(homepage);
+
+        // <a href="..."> 태그가 있으면 전부 추출
+        var links = doc.select("a[href]");
+        if (!links.isEmpty()) {
+            List<String> urls = new ArrayList<>();
+
+            links.forEach(link -> {
+                String href = link.attr("href").trim();
+                if (!href.isEmpty()) {
+                    urls.add(href);
+                }
+            });
+
+            return String.join(", ", urls);
+        }
+
+        // HTML이 없거나 href가 없으면 → 문자열에서 URL만 추출
+        String text = doc.text();
+
+        Pattern pattern = Pattern.compile("https?://[^\\s]+");
+        Matcher matcher = pattern.matcher(text);
+
+        List<String> urls = new ArrayList<>();
+
+        while (matcher.find()) {
+            urls.add(matcher.group());
+        }
+
+        if (urls.isEmpty()) {
+            return null;
+        }
+
+        return String.join(", ", urls);
+    }
+
+    // CONTACT_NUMBER  필드 데이터 정제 코드(
+    private String normalizeContactNumber(String rawTel) {
+        String text = nullableText(rawTel);
+        if (text == null) {
+            return null;
+        }
+
+        // 줄바꿈/탭 제거 후 공백 정리
+        text = text.replaceAll("[\\r\\n\\t]+", " ");
+        text = text.replaceAll("\\s+", " ").trim();
+
+        //전 화번호 + 전화번호가 바로 붙어 있는 경우 분리   ex: 043-532-3325043-539-3605 -> 043-532-3325, 043-539-3605
+        text = text.replaceAll(
+                "(\\d{2,4}-\\d{3,4}-\\d{4})(?=\\d{2,4}-\\d{3,4}-\\d{4})",
+                "$1, "
+        );
+
+        // 전화번호 뒤에 한글/영문이 바로 붙으면 구분자 분리 ex. 02-319-1220운영사 -> 02-319-1220 / 운영사
+        text = text.replaceAll(
+                "(\\d{2,4}-\\d{3,4}-\\d{4})(?=[가-힣A-Za-z])",
+                "$1 , "
+        );
+
+        // 한글/영문 뒤에 전화번호가 바로 붙으면 공백으로 분리 ex. 행사장02-319-1220 -> 행사장 02-319-1220
+        text = text.replaceAll(
+                "([가-힣A-Za-z])(?=\\d{2,4}-\\d{3,4}-\\d{4})",
+                "$1 "
+        );
+
+        // 구분자 주변 공백 정리
+        text = text.replaceAll("\\s*/\\s*", " / ");
+        text = text.replaceAll("\\s*,\\s*", ", ");
+        text = text.replaceAll("\\s+", " ").trim();
+
+        return text;
+    }
+
+
 
     //시작일 문자열(yyyyMMdd)을 LocalDateTime 시작 시각으로 변환 ex. 20260430 -> 2026-04-30T00:00:00
     private LocalDateTime parseStartDate(String rawDate) {

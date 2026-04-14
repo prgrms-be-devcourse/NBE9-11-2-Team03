@@ -28,6 +28,16 @@ public class FestivalSyncService {
         FestivalApiResponse response =
                 festivalApiClient.fetchFestivalList(pageNo, numOfRows, eventStartDate);
 
+        // 빈 페이지는 예외가 아니라 0건 동기화 결과로 반환(0, ,0, 0)
+        if (response == null ||
+                response.getResponse() == null ||
+                response.getResponse().getBody() == null ||
+                response.getResponse().getBody().getItems() == null ||
+                response.getResponse().getBody().getItems().getItem() == null ||
+                response.getResponse().getBody().getItems().getItem().isEmpty()) {
+            return new FestivalSyncResult(0, 0, 0);
+        }
+
         List<FestivalApiItem> items = response.getResponse()
                 .getBody()
                 .getItems()
@@ -89,5 +99,41 @@ public class FestivalSyncService {
 
         return new FestivalSyncResult(festivals.size(), 0, updatedCount);
     }
+
+
+    //###테스트코드 <상세 보강 결과 1개만 확인>
+    @Transactional
+    public void enrichFestivalDetailByContentId(String contentId) {
+        Festival festival = festivalRepository.findByContentId(contentId)
+                .orElseThrow();
+
+        try {
+            FestivalApiResponse response =
+                    festivalApiClient.fetchFestivalDetail(contentId);
+
+            if (response == null ||
+                    response.getResponse() == null ||
+                    response.getResponse().getHeader() == null ||
+                    !"0000".equals(response.getResponse().getHeader().getResultCode())) {
+                return;
+            }
+
+            List<FestivalApiItem> items = response.getResponse()
+                    .getBody()
+                    .getItems()
+                    .getItem();
+
+            if (items == null || items.isEmpty()) {
+                return;
+            }
+
+            festivalApiConverter.updateDetailFields(festival, items.get(0));
+
+        } catch (Exception e) {
+            System.out.println("상세 API 호출 실패 contentId=" + contentId
+                    + ", message=" + e.getMessage());
+        }
+    }
+
 }
 
