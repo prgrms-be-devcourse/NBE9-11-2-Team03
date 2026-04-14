@@ -5,13 +5,19 @@ import com.example.domain.festival.repository.FestivalRepository;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.review.dto.ReviewCreateRequestDto;
+import com.example.domain.review.dto.ReviewListResponseDto;
+import com.example.domain.review.dto.ReviewPageResponseDto;
 import com.example.domain.review.dto.ReviewResponseDto;
 import com.example.domain.review.entity.Review;
 import com.example.domain.review.repository.ReviewRepository;
+import com.example.global.exception.UnauthorizedException;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +27,7 @@ public class ReviewService {
     private final MemberRepository memberRepository;
     private final FestivalRepository festivalRepository;
 
+    //리뷰 작성
     @Transactional
     public ReviewResponseDto createReview(Long festivalId, Long memberId, ReviewCreateRequestDto requestDto){
         Member member = memberRepository.findById(memberId)
@@ -40,6 +47,40 @@ public class ReviewService {
 
         return new ReviewResponseDto(savedReview);
 
+    }
+
+    //리뷰 목록조회
+    public ReviewPageResponseDto getReviewList(Long festivalId, Long memberId, int page, int size) {
+
+        // 1. 로그인 체크
+        if (memberId == null) {
+            throw new UnauthorizedException("리뷰 조회는 로그인 후 이용 가능합니다.");
+        }
+
+        // 2. 축제 존재 체크
+        festivalRepository.findById(festivalId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 축제입니다."));
+
+        // 3. 리뷰 조회
+        PageRequest pageRequest = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        Page<Review> reviewPage = reviewRepository.findByFestivalId(festivalId, pageRequest);
+
+        return ReviewPageResponseDto.builder()
+                .festivalId(festivalId)
+                .content(reviewPage.getContent().stream()
+                        .map(ReviewListResponseDto::from)
+                        .toList())
+                .page(reviewPage.getNumber())
+                .size(reviewPage.getSize())
+                .totalElements(reviewPage.getTotalElements())
+                .totalPages(reviewPage.getTotalPages())
+                .hasNext(reviewPage.hasNext())
+                .build();
     }
 }
 
