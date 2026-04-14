@@ -40,6 +40,14 @@ public class Member extends BaseEntity {
     @Column(nullable = false)
     private Role role = Role.USER;
 
+    public Member(String loginId,String  password,String memberName,String email,String nickname,int reportCount){
+        this.loginId=loginId;
+        this.password=password;
+        this.memberName=memberName;
+        this.email=email;
+        this.nickname=nickname;
+        this.reportCount=reportCount;
+    }
     //초기데이터용 삭제
     public Member(String memberName, String password, String loginId, String email, String nickname, Role role) {
         this.memberName = memberName;
