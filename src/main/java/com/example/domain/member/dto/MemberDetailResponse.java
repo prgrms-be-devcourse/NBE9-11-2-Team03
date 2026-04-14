@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 public record MemberDetailResponse(
         Long memberId,
-        String loginId, // password는 쏙 뺐죠?
+        String loginId,
         String email,
         String nickname,
         int reportCount,

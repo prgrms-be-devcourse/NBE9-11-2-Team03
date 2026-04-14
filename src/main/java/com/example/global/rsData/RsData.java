@@ -1,9 +1,9 @@
 package com.example.global.rsData;
 
 public record RsData<T>(
-        String status,
+        String resultCode,
         String message,
-        T Data
+        T data
 ) {
     public RsData (String status, String message){
         this(status,message,null);

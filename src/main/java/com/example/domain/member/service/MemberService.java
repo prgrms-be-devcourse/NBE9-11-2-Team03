@@ -21,12 +21,9 @@ public class MemberService {
     public MemberPageResponse getAllMembers(Pageable pageable) {
         return MemberPageResponse.from(memberRepository.findAll(pageable));
     }
-
     //저장된 회원중 신고횟수가 5이상이며, 활동중인 회원 조회하는 함수
     public MemberPageResponse getReportMembers(Pageable pageable) {
         Page<Member> memberPage = memberRepository.findAllByReportCountGreaterThanEqualAndStatus(5,MemberStatus.ACTIVE,pageable);
         return MemberPageResponse.from(memberPage);
-
-
     }
 }

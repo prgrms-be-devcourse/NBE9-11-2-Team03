@@ -4,6 +4,8 @@ import com.example.domain.member.dto.MemberPageResponse;
 import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.member.service.MemberService;
 import com.example.global.rsData.RsData;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
+@Tag(name = "Admin", description = "관리자API")
 public class AdminController {
     private final MemberService memberService;
 
@@ -30,6 +33,7 @@ public class AdminController {
      * @return 회원 목록 정보를 담은 RsData객체
      */
     @GetMapping("/members")
+    @Operation(summary = "회원조회", description = "회원 목록을 전체 조회합니다.")
     public ResponseEntity<RsData<MemberPageResponse>> getMemberList(
             @PageableDefault(
                     size = 10,
@@ -53,6 +57,7 @@ public class AdminController {
      * @return 신고 누적횟수가5회이상인 활동중인 회원목록을 RsData객체
      */
     @GetMapping("/members/reported")
+    @Operation(summary = "신고 누적 회원조회", description = "신고 누적 회원을 조회합니다.")
     public ResponseEntity<RsData<MemberPageResponse>> getReportMemberList(
             @PageableDefault(
                     size = 10,

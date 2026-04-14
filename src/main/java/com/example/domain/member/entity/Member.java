@@ -40,5 +40,12 @@ public class Member extends BaseEntity {
     @Column(nullable = false)
     private Role role = Role.USER;
 
-
+    public Member(String loginId,String  password,String memberName,String email,String nickname,int reportCount){
+        this.loginId=loginId;
+        this.password=password;
+        this.memberName=memberName;
+        this.email=email;
+        this.nickname=nickname;
+        this.reportCount=reportCount;
+    }
 }
