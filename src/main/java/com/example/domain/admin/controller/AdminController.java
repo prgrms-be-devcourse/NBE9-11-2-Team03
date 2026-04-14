@@ -96,6 +96,12 @@ public class AdminController {
         );
     }
 
+    /**
+     *관리자가 Blind혹은 신고수를 초기화 하는 컨트롤러 메서드
+     * @param reviewId:검토할 리뷰 id
+     * @param req= BLIND혹은 DISMISS 중하나
+     * @return 해당 리뷰 id, 상태,신고 횟수를 담은 RsData반환
+     */
     @PatchMapping("/reviews/{reviewId}/status")
     @Operation(summary = "악성리뷰 블라인드처리", description = "관리자가 악성리뷰를 블라인드처리할수있다.")
     public ResponseEntity<RsData<AdminReviewBlindRes>> processReview(
