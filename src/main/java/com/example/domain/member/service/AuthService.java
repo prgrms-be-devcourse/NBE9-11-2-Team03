@@ -8,6 +8,7 @@ import com.example.domain.member.entity.Member;
 import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final MemberRepository memberRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     // 회원가입을 처리한다.
-    // 중복 검사 -> 비밀번호 처리 -> 엔티티 생성 -> 저장 -> 응답 변환 순서로 진행한다.
+    // 중복 검사 -> 비밀번호 암호화 -> 엔티티 생성 -> 저장 -> 응답 변환 순서로 진행한다.
     public SignupResponse signup(SignupRequest request) {
         validateDuplicateSignupInfo(request);
 
@@ -82,17 +84,14 @@ public class AuthService {
         }
     }
 
-    // 비밀번호 암호화는 다음 단계에서 PasswordEncoder로 연결할 예정이다.
-    // 현재는 서비스 골격만 유지하기 위해 별도 메서드로 분리해둔다.
+    // 회원가입 시 비밀번호를 암호화해서 저장한다.
     private String encodePassword(String rawPassword) {
-        // TODO: 7단계에서 PasswordEncoder.encode(rawPassword)로 교체
-        return rawPassword;
+        return passwordEncoder.encode(rawPassword);
     }
 
-    // 로그인 시 비밀번호 검증도 다음 단계에서 PasswordEncoder.matches로 교체한다.
+    // 로그인 시 입력한 비밀번호와 저장된 암호화 비밀번호를 비교한다.
     private void validatePassword(String rawPassword, String encodedPassword) {
-        // TODO: 7단계에서 PasswordEncoder.matches(rawPassword, encodedPassword)로 교체
-        if (!encodedPassword.equals(rawPassword)) {
+        if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
     }
