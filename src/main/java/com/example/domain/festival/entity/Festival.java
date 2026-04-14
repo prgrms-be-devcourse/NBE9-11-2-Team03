@@ -62,4 +62,32 @@ public class Festival extends BaseEntity {
 
     @Column(nullable = false)
     private Double averageRate = 0.0;
+
+
+    //초기 데이터용 삭제
+    public Festival(
+            String contentId,
+            String title,
+            String overview,
+            String address,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Double mapX,
+            Double mapY
+    ) {
+        this.contentId = contentId;
+        this.title = title;
+        this.overview = overview;
+        this.address = address;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.mapX = mapX;
+        this.mapY = mapY;
+
+        // 기본값 세팅
+        this.status = FestivalStatus.UPCOMING;
+        this.viewCount = 0;
+        this.likeCount = 0;
+        this.averageRate = 0.0;
+    }
 }
