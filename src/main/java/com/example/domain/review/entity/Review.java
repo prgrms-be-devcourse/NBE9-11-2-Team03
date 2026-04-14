@@ -41,4 +41,16 @@ public class Review extends BaseEntity {
 
     @Column(nullable = false)
     private Integer reportCount = 0;
+
+    public Review(Member member, Festival festival, String content, String image, Integer rating) {
+        this.member = member;
+        this.festival = festival;
+        this.content = content;
+        this.image = image;
+        this.rating = rating;
+        this.status = ReviewStatus.ACTIVE;
+        this.likeCount = 0;
+        this.reportCount = 0;
+    }
 }
+
