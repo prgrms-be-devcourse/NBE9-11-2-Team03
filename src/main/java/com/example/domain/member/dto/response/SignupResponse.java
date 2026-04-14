@@ -6,7 +6,7 @@ import com.example.domain.member.entity.Role;
 import lombok.Getter;
 
 @Getter
-// Signup Response DTO
+// 회원가입 성공 시 클라이언트에 내려줄 데이터를 담는 DTO다.
 public class SignupResponse {
 
     private final Long memberId;
@@ -29,6 +29,7 @@ public class SignupResponse {
         this.status = status;
     }
 
+    // 저장된 Member 엔티티를 회원가입 응답 DTO로 변환한다.
     public static SignupResponse from(Member member) {
         return new SignupResponse(
                 member.getId(),

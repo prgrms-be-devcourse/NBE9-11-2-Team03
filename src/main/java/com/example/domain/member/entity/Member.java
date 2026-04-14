@@ -15,10 +15,9 @@ import lombok.NoArgsConstructor;
 @Table(name = "member")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-// 회원이 어떤 값을 가지는지 정의하는 회원 엔티티
+
 public class Member extends BaseEntity {
 
-    // DB 컬럼과 자바 필드 연결
     @Column(name = "user_name", nullable = false)
     private String userName;
 
@@ -67,7 +66,6 @@ public class Member extends BaseEntity {
         this.role = role;
     }
 
-    // 회원가입 시 기본 status, role, reportCount를 한곳에서 설정한다.
     public static Member create(
             String userName,
             String password,
@@ -87,7 +85,7 @@ public class Member extends BaseEntity {
         );
     }
 
-    // 회원탈퇴를 삭제 방식으로 처리할 준비
+
     public void withdraw() {
         this.status = MemberStatus.WITHDRAWN;
     }

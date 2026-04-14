@@ -6,7 +6,7 @@ import com.example.domain.member.entity.Role;
 import lombok.Getter;
 
 @Getter
-// Login Response DTO
+// 로그인 성공 시 access token과 회원 기본 정보를 함께 내려주는 DTO다.
 public class LoginResponse {
 
     private final String accessToken;
@@ -32,6 +32,7 @@ public class LoginResponse {
         this.status = status;
     }
 
+    // 발급된 access token과 Member 엔티티를 조합해 로그인 응답 DTO를 만든다.
     public static LoginResponse of(String accessToken, Member member) {
         return new LoginResponse(
                 accessToken,
