@@ -1,11 +1,13 @@
 package com.example.domain.review.service;
 
+import com.example.domain.admin.dto.AdminReviewBlindRes;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.repository.MemberRepository;
-import com.example.domain.review.dto.ReviewCreateRequestDto;
-import com.example.domain.review.dto.ReviewResponseDto;
+import com.example.domain.admin.dto.AdminReviewReportPageRes;
+import com.example.domain.review.dto.*;
+import com.example.domain.review.dto.*;
 import com.example.domain.review.entity.Review;
 import com.example.domain.review.entity.ReviewStatus;
 import com.example.domain.review.repository.ReviewRepository;
@@ -14,12 +16,12 @@ import com.example.global.exception.ForbiddenException;
 import com.example.global.exception.UnauthorizedException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +51,11 @@ public class ReviewService {
 
         return new ReviewResponseDto(savedReview);
 
+    }
+    // 신고횟수가 5이상인 review리스트를 DTO로 반환하여 주는 함수
+    public AdminReviewReportPageRes getReportReview(Pageable pageable) {
+        Page<Review> reviews = reviewRepository.findAllByReportCountGreaterThanEqualAndStatus(5,ReviewStatus.ACTIVE,pageable);
+        return AdminReviewReportPageRes.from(reviews);
     }
 
     //리뷰 목록조회
@@ -131,6 +138,33 @@ public class ReviewService {
     }
 
 
+
+
+    //리뷰를 검토하여 블라인드처리, 신고횟수 초기화하는 함수
+    @Transactional
+    public AdminReviewBlindRes processReviewAction(Long reviewId, String action) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(()->new EntityNotFoundException("해당 리뷰를 찾을 수 없습니다."));//추후 변경 예정
+        if ("BLIND".equalsIgnoreCase(action)) {
+            review.reviewBlind();
+            Member author = review.getMember();
+            if(author!=null){
+                author.increaseReportCount();
+            }
+        }
+        else if ("DISMISS".equalsIgnoreCase(action)) {
+            // 신고 횟수를 0으로 초기화 (무혐의 처리)
+            review.reportCountReset();
+        }
+        else {
+            throw new IllegalArgumentException("잘못된 처리 요청입니다: " + action);
+        }
+        return new AdminReviewBlindRes(
+                review.getId(),
+                review.getStatus(),
+                review.getReportCount()
+        );
+    }
 
 }
 

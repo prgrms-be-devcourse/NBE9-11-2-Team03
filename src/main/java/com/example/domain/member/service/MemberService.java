@@ -1,6 +1,6 @@
 package com.example.domain.member.service;
 
-import com.example.domain.member.dto.MemberPageResponse;
+import com.example.domain.admin.dto.MemberPageResponse;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.repository.MemberRepository;
