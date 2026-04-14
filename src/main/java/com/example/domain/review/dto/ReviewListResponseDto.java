@@ -14,7 +14,7 @@ public class ReviewListResponseDto {
     private Long reviewId;
     private Long memberId;
     private Long festivalId;
-    private String nickname;
+    private String memberName;
     private String content;
     private Integer rating;
     private String image;
@@ -27,7 +27,7 @@ public class ReviewListResponseDto {
                 .reviewId(review.getId())
                 .memberId(review.getMember().getId())
                 .festivalId(review.getFestival().getId())
-                .nickname(review.getMember().getNickname())
+                .memberName(review.getMember().getMemberName())
                 .content(review.getContent())
                 .image(review.getImage())
                 .rating(review.getRating())
