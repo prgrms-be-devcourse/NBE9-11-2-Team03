@@ -48,4 +48,16 @@ public class Member extends BaseEntity {
         this.nickname=nickname;
         this.reportCount=reportCount;
     }
+    //초기데이터용 삭제
+    public Member(String memberName, String password, String loginId, String email, String nickname, Role role) {
+        this.memberName = memberName;
+        this.password = password;
+        this.loginId = loginId;
+        this.email = email;
+        this.nickname = nickname;
+        this.role = role;
+        this.reportCount = 0;
+    }
+
+
 }
