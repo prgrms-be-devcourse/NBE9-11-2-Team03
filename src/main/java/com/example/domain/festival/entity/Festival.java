@@ -64,8 +64,10 @@ public class Festival extends BaseEntity {
     @Column(nullable = false)
     private Integer likeCount = 0;
 
-    @Column(name = "bookmark_count",nullable = false)
-    private Integer bookmarkCount = 0;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer bookMarkCount = 0;
 
     @Column(nullable = false)
     private Double averageRate = 0.0;
@@ -96,7 +98,9 @@ public class Festival extends BaseEntity {
         this.viewCount = 0;
         this.likeCount = 0;
         this.averageRate = 0.0;
+        this.bookMarkCount = 0;
     }
+
     public void updateAverageRating(Double averageRating) {
         this.averageRate = averageRating;
     }

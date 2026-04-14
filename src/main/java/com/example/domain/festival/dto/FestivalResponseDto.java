@@ -26,7 +26,7 @@ public record FestivalResponseDto(
                 festival.getAddress(),
                 festival.getStatus().name(),
                 festival.getViewCount(),
-                festival.getBookmarkCount(),
+                festival.getBookMarkCount(),
                 festival.getAverageRate()
         );
     }

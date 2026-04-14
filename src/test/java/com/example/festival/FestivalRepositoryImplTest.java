@@ -1,4 +1,4 @@
-package com.example;
+package com.example.festival;
 
 import com.example.domain.festival.dto.FestivalSearchDto;
 import com.example.domain.festival.entity.Festival;
@@ -41,7 +41,7 @@ public class FestivalRepositoryImplTest {
                 .startDate(LocalDateTime.now().minusDays(2))
                 .endDate(LocalDateTime.now().plusDays(5))
                 .viewCount(100)
-                .bookmarkCount(10)
+                .bookMarkCount(10)
                 // 만약 averageRate 도 NOT NULL 이라면 .averageRate(0.0) 추가!
                 .averageRate(4.5)
                 .build());
@@ -57,7 +57,7 @@ public class FestivalRepositoryImplTest {
                 .startDate(LocalDateTime.now().plusDays(10))
                 .endDate(LocalDateTime.now().plusDays(12))
                 .viewCount(500)
-                .bookmarkCount(50)
+                .bookMarkCount(50)
                 .averageRate(0.0)
                 .build());
 
@@ -72,7 +72,7 @@ public class FestivalRepositoryImplTest {
                 .startDate(LocalDateTime.now().minusDays(20))
                 .endDate(LocalDateTime.now().minusDays(15))
                 .viewCount(1000)
-                .bookmarkCount(100)
+                .bookMarkCount(100)
                 .averageRate(4.8)
                 .build());
 
@@ -87,7 +87,7 @@ public class FestivalRepositoryImplTest {
                 .startDate(LocalDateTime.now().minusDays(1))
                 .endDate(LocalDateTime.now().plusDays(10))
                 .viewCount(50)
-                .bookmarkCount(5)
+                .bookMarkCount(5)
                 .averageRate(3.5)
                 .build());
 
@@ -102,7 +102,7 @@ public class FestivalRepositoryImplTest {
                 .startDate(LocalDateTime.now().minusDays(10))
                 .endDate(LocalDateTime.now().minusDays(5)) // 부산(-15일)보다 최근에 끝남!
                 .viewCount(2000)
-                .bookmarkCount(300)
+                .bookMarkCount(300)
                 .averageRate(4.9)
                 .build());
     }

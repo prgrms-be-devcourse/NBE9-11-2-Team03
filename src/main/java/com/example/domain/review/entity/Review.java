@@ -66,6 +66,11 @@ public class Review extends BaseEntity {
 
 
 
-
+    public void reviewBlind(){
+        this.status=ReviewStatus.BLIND;
+    }
+    public  void reportCountReset(){
+        this.reportCount=0;
+    }
 }
 
