@@ -1,4 +1,4 @@
-package com.example.domain.member.dto;
+package com.example.domain.admin.dto;
 
 import com.example.domain.member.entity.Member;
 import org.springframework.data.domain.Page;
