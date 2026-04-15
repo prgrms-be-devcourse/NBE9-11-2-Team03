@@ -53,5 +53,23 @@ public class Review extends BaseEntity {
         this.likeCount = 0;
         this.reportCount = 0;
     }
+
+    public void updateReview(String content, String image, Integer rating) {
+        this.content = content;
+        this.image = image;
+        this.rating = rating;
+    }
+
+    public void deleteReview() {
+        this.status = ReviewStatus.DELETED;
+    }
+
+    public void reviewBlind(){
+        this.status=ReviewStatus.BLIND;
+    }
+
+    public  void reportCountReset(){
+        this.reportCount=0;
+    }
 }
 
