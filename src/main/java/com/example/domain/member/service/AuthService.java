@@ -27,8 +27,8 @@ public class AuthService {
     private final JwtUtil jwtUtil;
 
     @Transactional
-    // 1) 회원가입을 처리한다.
-    // 중복 검사 -> 비밀번호 암호화 -> 엔티티 생성 -> 저장 -> 응답 변환 순서로 진행한다.
+    // 1) 회원가입
+    // 중복 검사 -> 비밀번호 암호화 -> 엔티티 생성 -> 저장 -> 응답 변환 순서로 진행
     public SignupResponse signup(SignupRequest request) {
         validateDuplicateSignupInfo(request);
 
@@ -46,7 +46,7 @@ public class AuthService {
         return SignupResponse.from(savedMember);
     }
 
-    // 2) 로그인을 처리한다.
+    // 2) 로그인
     // 회원 조회 -> 탈퇴 여부 확인 -> 비밀번호 검증 -> 토큰 발급 -> 응답 변환 순서로 진행한다.
     public LoginResponse login(LoginRequest request) {
         Member member = findMemberByLoginId(request.getLoginId());
@@ -57,7 +57,7 @@ public class AuthService {
         return LoginResponse.of(accessToken, member);
     }
 
-    // 3) 회원가입 시 아이디, 이메일, 닉네임 중복 여부를 검사한다.
+    // 3) 회원가입 시 아이디, 이메일, 닉네임 중복 여부를 검사
     // 지금은 골격 단계이므로 예외는 IllegalArgumentException으로 두고,
     // 이후 커스텀 예외와 전역 예외 처리 단계에서 세분화하면 된다.
     private void validateDuplicateSignupInfo(SignupRequest request) {
