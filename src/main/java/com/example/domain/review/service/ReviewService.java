@@ -51,6 +51,11 @@ public class ReviewService {
         return new ReviewResponseDto(savedReview);
 
     }
+    // 신고횟수가 5이상인 review리스트를 DTO로 반환하여 주는 함수
+    public AdminReviewReportPageRes getReportReview(Pageable pageable) {
+        Page<Review> reviews = reviewRepository.findAllByReportCountGreaterThanEqualAndStatus(5,ReviewStatus.ACTIVE,pageable);
+        return AdminReviewReportPageRes.from(reviews);
+    }
 
     //리뷰 목록조회
     public ReviewPageResponseDto getReviewList(Long festivalId, Long memberId, int page, int size) {

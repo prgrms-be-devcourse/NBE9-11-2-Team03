@@ -24,12 +24,18 @@ repositories {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     //db및 swagger체크용을 잠시 꺼둠
-    //implementation("org.springframework.boot:spring-boot-starter-security")
+    // SecurityConfig와 JWT 인증 필터를 사용하기 위한 Spring Security 의존성이다.
+    implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("org.springframework.security:spring-security-crypto")
+    // JwtUtil에서 JWT 토큰을 만들고 해석할 때 사용하는 라이브러리다.
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     implementation("org.springframework.boot:spring-boot-starter-web")
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("com.h2database:h2")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
     //일단 H2로 구현
     //runtimeOnly("com.mysql:mysql-connector-j")
     annotationProcessor("org.projectlombok:lombok")
