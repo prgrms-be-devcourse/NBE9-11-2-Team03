@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -98,6 +99,14 @@ public class GlobalExceptionHandler {
 
     private String formatFieldError(FieldError error) {
         return error.getField() + ": " + error.getDefaultMessage();
+    }
+
+    //429 Too Many Requests (외부 API 호출 한도 초과)
+    @ExceptionHandler(HttpClientErrorException.TooManyRequests.class)
+    public ResponseEntity<RsData<Void>> handleTooManyRequests(HttpClientErrorException.TooManyRequests e) {
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new RsData<>("429", "외부 API 호출 한도를 초과했습니다.", null));
     }
 
     //TODOS: 시큐리티 도입 후, 관련 예외처리

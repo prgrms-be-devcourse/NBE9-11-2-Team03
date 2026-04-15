@@ -32,8 +32,12 @@ public class FestivalAdminController {
         FestivalSyncResult result =
                 festivalSyncService.enrichFestivalDetails();
 
-        return RsData.success("전체 축제 상세 정보 보강이 완료되었습니다.", result);
-    }
+        //전체 성공이 아니라 일부 실패가 존재할 수 있으므로 메시지 분기
+        String message = result.getFailedCount() > 0
+                ? "전체 축제 상세 정보 보강이 부분 완료되었습니다."
+                : "전체 축제 상세 정보 보강이 완료되었습니다.";
+
+        return RsData.success(message, result);    }
 
     //특정 축제 1건만 상세 보강한다.(특정 데이터 재동기화 , 디버깅, 전체 보강 전 검증 목적)
     @PostMapping("/{contentId}/enrich")

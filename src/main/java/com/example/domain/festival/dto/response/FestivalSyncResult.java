@@ -10,4 +10,5 @@ public class FestivalSyncResult {
     private int totalCount;
     private int createdCount;
     private int updatedCount;
+    private int failedCount;
 }

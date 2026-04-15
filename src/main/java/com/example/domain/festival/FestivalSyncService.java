@@ -29,14 +29,14 @@ public class FestivalSyncService {
         FestivalApiResponse response =
                 festivalApiClient.fetchFestivalList(pageNo, numOfRows, eventStartDate);
 
-        // 빈 페이지는 예외가 아니라 0건 동기화 결과로 반환(0, ,0, 0)
+        // 빈 페이지는 예외가 아니라 0건 동기화 결과로 반환(0, ,0, 0, 0)
         if (response == null ||
                 response.getResponse() == null ||
                 response.getResponse().getBody() == null ||
                 response.getResponse().getBody().getItems() == null ||
                 response.getResponse().getBody().getItems().getItem() == null ||
                 response.getResponse().getBody().getItems().getItem().isEmpty()) {
-            return new FestivalSyncResult(0, 0, 0);
+            return new FestivalSyncResult(0, 0, 0, 0);
         }
 
         List<FestivalApiItem> items = response.getResponse()
@@ -63,42 +63,62 @@ public class FestivalSyncService {
             }
         }
 
-        return new FestivalSyncResult(items.size(), createdCount, updatedCount);
+        return new FestivalSyncResult(items.size(), createdCount, updatedCount, 0);
     }
 
 
     //상세 API 기반 상세 정보 보강
     public FestivalSyncResult enrichFestivalDetails() {
-        List<Festival> festivals = festivalRepository.findAll(); //TODOS: API 호출량에 다른 rate limit 고려해야함 => 추후, 페이지 단위 조회/조건 조회 등... 확장 고려
+        List<Festival> festivals = festivalRepository.findAll(); //TODOS: API 호출량에 따른 rate limit 고려 필요 => 추후, 페이지 단위 조회/조건 조회 등... 확장 고려
 
         int updatedCount = 0;
+        int failedCount = 0;
 
         for (Festival festival : festivals) {
-            FestivalApiResponse detailResponse =
-                    festivalApiClient.fetchFestivalDetail(festival.getContentId());
+            try {
+                FestivalApiResponse detailResponse =
+                        festivalApiClient.fetchFestivalDetail(festival.getContentId());
 
-            if (detailResponse == null ||
-                    detailResponse.getResponse() == null ||
-                    detailResponse.getResponse().getHeader() == null ||
-                    !"0000".equals(detailResponse.getResponse().getHeader().getResultCode())) {
+                if (detailResponse == null ||
+                        detailResponse.getResponse() == null ||
+                        detailResponse.getResponse().getHeader() == null ||
+                        !"0000".equals(detailResponse.getResponse().getHeader().getResultCode())) {
+                    failedCount++; //상세 응답 자체가 비정상이면 실패 건수 증가
+                    continue;
+                }
+
+                if (detailResponse.getResponse().getBody() == null ||
+                        detailResponse.getResponse().getBody().getItems() == null ||
+                        detailResponse.getResponse().getBody().getItems().getItem() == null) {
+                    failedCount++;
+                    continue;
+                }
+
+                List<FestivalApiItem> detailItems = detailResponse.getResponse()
+                        .getBody()
+                        .getItems()
+                        .getItem();
+
+                if (detailItems.isEmpty()) {
+                    failedCount++; //상세 item이 비어 있는 경우도 실패로 간주
+                    continue;
+                }
+
+                FestivalApiItem detailItem = detailItems.get(0);
+                festivalApiConverter.updateDetailFields(festival, detailItem);
+                updatedCount++;
+
+            } catch (Exception e) {
+                //TODOS: 현재는 실패한 1건만 건너뛰고 계속 진행중
+                //       추후 logger 적용 및 실패 건수 별도 관리 확장 고려
+                System.out.println("전체 상세 보강 중 실패 contentId=" + festival.getContentId()
+                        + ", message=" + e.getMessage());
+                failedCount++;
                 continue;
             }
-
-            List<FestivalApiItem> detailItems = detailResponse.getResponse()
-                    .getBody()
-                    .getItems()
-                    .getItem();
-
-            if (detailItems == null || detailItems.isEmpty()) {
-                continue;
-            }
-
-            FestivalApiItem detailItem = detailItems.get(0);
-            festivalApiConverter.updateDetailFields(festival, detailItem);
-            updatedCount++;
         }
 
-        return new FestivalSyncResult(festivals.size(), 0, updatedCount);
+        return new FestivalSyncResult(festivals.size(), 0, updatedCount, failedCount);
     }
 
     //상세 API 기반 상세 정보 보강 (특정 축제 1건에 대해한 상세 정보를 보강한다)
@@ -108,32 +128,33 @@ public class FestivalSyncService {
         Festival festival = festivalRepository.findByContentId(contentId)
                 .orElseThrow(() -> new NoSuchElementException(
                         "해당 contentId의 축제를 찾을 수 없습니다. contentId=" + contentId));
-        try {
-            FestivalApiResponse response =
-                    festivalApiClient.fetchFestivalDetail(contentId);
 
-            if (response == null ||
-                    response.getResponse() == null ||
-                    response.getResponse().getHeader() == null ||
-                    !"0000".equals(response.getResponse().getHeader().getResultCode())) {
-                return;
-            }
+        FestivalApiResponse response =
+                festivalApiClient.fetchFestivalDetail(contentId);
 
-            List<FestivalApiItem> items = response.getResponse()
-                    .getBody()
-                    .getItems()
-                    .getItem();
-
-            if (items == null || items.isEmpty()) {
-                return;
-            }
-
-            festivalApiConverter.updateDetailFields(festival, items.get(0));
-
-        } catch (Exception e) {
-            System.out.println("상세 API 호출 실패 contentId=" + contentId
-                    + ", message=" + e.getMessage());
+        if (response == null ||
+                response.getResponse() == null ||
+                response.getResponse().getHeader() == null ||
+                !"0000".equals(response.getResponse().getHeader().getResultCode())) {
+            return;
         }
+
+        if (response.getResponse().getBody() == null ||
+                response.getResponse().getBody().getItems() == null ||
+                response.getResponse().getBody().getItems().getItem() == null) {
+            return;
+        }
+
+        List<FestivalApiItem> items = response.getResponse()
+                .getBody()
+                .getItems()
+                .getItem();
+
+        if (items.isEmpty()) {
+            return;
+        }
+
+        festivalApiConverter.updateDetailFields(festival, items.get(0));
     }
 
 }
