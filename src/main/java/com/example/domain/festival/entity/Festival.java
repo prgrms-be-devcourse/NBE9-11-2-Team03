@@ -8,6 +8,7 @@ import jakarta.persistence.Enumerated;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Getter
@@ -143,5 +144,43 @@ public class Festival extends BaseEntity {
         this.overview = overview;
         this.homepageUrl = homepageUrl;
         this.contactNumber = contactNumber;
+    }
+
+    //축제 목록 변경 여부 판단 메서드
+    public boolean isSameListInfo(
+            String title,
+            String contactNumber,
+            String firstImageUrl,
+            String thumbnailUrl,
+            String address,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Double mapX,
+            Double mapY,
+            String lDongRegnCd,
+            FestivalStatus status
+    ) {
+        return Objects.equals(this.title, title)
+                && Objects.equals(this.contactNumber, contactNumber)
+                && Objects.equals(this.firstImageUrl, firstImageUrl)
+                && Objects.equals(this.thumbnailUrl, thumbnailUrl)
+                && Objects.equals(this.address, address)
+                && Objects.equals(this.startDate, startDate)
+                && Objects.equals(this.endDate, endDate)
+                && Objects.equals(this.mapX, mapX)
+                && Objects.equals(this.mapY, mapY)
+                && Objects.equals(this.lDongRegnCd, lDongRegnCd)
+                && this.status == status;
+    }
+
+    //축제 상세 장보 변경 여부 판단 메서드
+    public boolean isSameDetailInfo(
+            String overview,
+            String homepageUrl,
+            String contactNumber
+    ) {
+        return Objects.equals(this.overview, overview)
+                && Objects.equals(this.homepageUrl, homepageUrl)
+                && Objects.equals(this.contactNumber, contactNumber);
     }
 }

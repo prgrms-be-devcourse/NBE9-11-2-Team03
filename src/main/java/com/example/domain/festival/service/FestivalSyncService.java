@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -36,7 +37,7 @@ public class FestivalSyncService {
                 response.getResponse().getBody().getItems() == null ||
                 response.getResponse().getBody().getItems().getItem() == null ||
                 response.getResponse().getBody().getItems().getItem().isEmpty()) {
-            return new FestivalSyncResult(0, 0, 0, 0);
+            return new FestivalSyncResult(0, 0, 0, 0, List.of());
         }
 
         List<FestivalApiItem> items = response.getResponse()
@@ -46,6 +47,7 @@ public class FestivalSyncService {
 
         int createdCount = 0;
         int updatedCount = 0;
+        List<String> changedContentIds = new ArrayList<>();
 
         for (FestivalApiItem item : items) {
             String contentId = item.getContentid();
@@ -57,33 +59,36 @@ public class FestivalSyncService {
                 Festival newFestival = festivalApiConverter.toEntityFromListItem(item);
                 festivalRepository.save(newFestival);
                 createdCount++;
-            } else {
+                changedContentIds.add(contentId);
+            } else if (festivalApiConverter.hasListChanges(existingFestival, item)) {
                 festivalApiConverter.updateFromListItem(existingFestival, item);
                 updatedCount++;
+                changedContentIds.add(contentId);
             }
         }
 
-        return new FestivalSyncResult(items.size(), createdCount, updatedCount, 0);
+        return new FestivalSyncResult(items.size(), createdCount, updatedCount, 0, changedContentIds);
     }
 
-
-    //상세 API 기반 상세 정보 보강
-    public FestivalSyncResult enrichFestivalDetails() {
-        List<Festival> festivals = festivalRepository.findAll(); //TODOS: API 호출량에 따른 rate limit 고려 필요 => 추후, 페이지 단위 조회/조건 조회 등... 확장 고려
-
+    //상세 API 기반 상세 정보 보강 (변경된 contentId 목록만 변경 대상 ex. 초기적재 or 실제 변경)
+    public FestivalSyncResult enrichFestivalDetailsByContentIds(List<String> contentIds) {
         int updatedCount = 0;
         int failedCount = 0;
 
-        for (Festival festival : festivals) {
+        for (String contentId : contentIds) {
             try {
+                Festival festival = festivalRepository.findByContentId(contentId)
+                        .orElseThrow(() -> new NoSuchElementException(
+                                "해당 contentId의 축제를 찾을 수 없습니다. contentId=" + contentId));
+
                 FestivalApiResponse detailResponse =
-                        festivalApiClient.fetchFestivalDetail(festival.getContentId());
+                        festivalApiClient.fetchFestivalDetail(contentId);
 
                 if (detailResponse == null ||
                         detailResponse.getResponse() == null ||
                         detailResponse.getResponse().getHeader() == null ||
                         !"0000".equals(detailResponse.getResponse().getHeader().getResultCode())) {
-                    failedCount++; //상세 응답 자체가 비정상이면 실패 건수 증가
+                    failedCount++;
                     continue;
                 }
 
@@ -100,25 +105,26 @@ public class FestivalSyncService {
                         .getItem();
 
                 if (detailItems.isEmpty()) {
-                    failedCount++; //상세 item이 비어 있는 경우도 실패로 간주
+                    failedCount++;
                     continue;
                 }
 
                 FestivalApiItem detailItem = detailItems.get(0);
-                festivalApiConverter.updateDetailFields(festival, detailItem);
-                updatedCount++;
+
+                //TODOS: 상세 정보도 실제 변경된 경우에만 update 수행
+                if (festivalApiConverter.hasDetailChanges(festival, detailItem)) {
+                    festivalApiConverter.updateDetailFields(festival, detailItem);
+                    updatedCount++;
+                }
 
             } catch (Exception e) {
-                //TODOS: 현재는 실패한 1건만 건너뛰고 계속 진행중
-                //       추후 logger 적용 및 실패 건수 별도 관리 확장 고려
-                System.out.println("전체 상세 보강 중 실패 contentId=" + festival.getContentId()
+                System.out.println("변경 축제 상세 보강 중 실패 contentId=" + contentId
                         + ", message=" + e.getMessage());
                 failedCount++;
-                continue;
             }
         }
 
-        return new FestivalSyncResult(festivals.size(), 0, updatedCount, failedCount);
+        return new FestivalSyncResult(contentIds.size(), 0, updatedCount, failedCount, contentIds);
     }
 
     //상세 API 기반 상세 정보 보강 (특정 축제 1건에 대해한 상세 정보를 보강한다)
@@ -154,8 +160,11 @@ public class FestivalSyncService {
             return;
         }
 
-        festivalApiConverter.updateDetailFields(festival, items.get(0));
-    }
+        FestivalApiItem detailItem = items.get(0);
 
+        if (festivalApiConverter.hasDetailChanges(festival, detailItem)) {
+            festivalApiConverter.updateDetailFields(festival, detailItem);
+        }
+    }
 }
 

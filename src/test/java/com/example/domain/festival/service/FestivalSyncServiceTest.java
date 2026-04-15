@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 class FestivalSyncServiceTest {
-    //목적. mock 기반 서비스 흐름 검증 테스트
+    // 목적: mock 기반 서비스 흐름 검증 테스트
 
     private final FestivalApiClient festivalApiClient = mock(FestivalApiClient.class);
     private final FestivalApiConverter festivalApiConverter = mock(FestivalApiConverter.class);
@@ -38,7 +38,6 @@ class FestivalSyncServiceTest {
         void syncFestivalList_create_test() throws Exception {
             // given
             FestivalApiItem item = createApiItem("1001", "가야문화축제");
-
             FestivalApiResponse response = createResponse(List.of(item));
 
             Festival newFestival = Festival.builder()
@@ -75,7 +74,7 @@ class FestivalSyncServiceTest {
         }
 
         @Test
-        @DisplayName("기존 축제면 수정한다")
+        @DisplayName("기존 축제면서 목록 정보가 변경된 경우 수정한다")
         void syncFestivalList_update_test() throws Exception {
             // given
             FestivalApiItem item = createApiItem("1001", "수정된 축제명");
@@ -100,6 +99,7 @@ class FestivalSyncServiceTest {
 
             when(festivalApiClient.fetchFestivalList(1, 10, "20260101")).thenReturn(response);
             when(festivalRepository.findByContentId("1001")).thenReturn(Optional.of(existingFestival));
+            when(festivalApiConverter.hasListChanges(existingFestival, item)).thenReturn(true);
 
             // when
             FestivalSyncResult result = festivalSyncService.syncFestivalList(1, 10, "20260101");
@@ -109,18 +109,60 @@ class FestivalSyncServiceTest {
             assertThat(result.getCreatedCount()).isEqualTo(0);
             assertThat(result.getUpdatedCount()).isEqualTo(1);
 
+            verify(festivalApiConverter, times(1)).hasListChanges(existingFestival, item);
             verify(festivalApiConverter, times(1)).updateFromListItem(existingFestival, item);
+            verify(festivalRepository, never()).save(any(Festival.class));
+        }
+
+        @Test
+        @DisplayName("기존 축제지만 목록 정보가 변경되지 않은 경우 수정하지 않는다")
+        void syncFestivalList_no_change_test() throws Exception {
+            // given
+            FestivalApiItem item = createApiItem("1001", "기존 축제명");
+            FestivalApiResponse response = createResponse(List.of(item));
+
+            Festival existingFestival = Festival.builder()
+                    .contentId("1001")
+                    .title("기존 축제명")
+                    .overview("기존 설명")
+                    .contactNumber("055-1111-1111")
+                    .firstImageUrl("old1.jpg")
+                    .thumbnailUrl("old2.jpg")
+                    .address("기존 주소")
+                    .homepageUrl("https://old.com")
+                    .startDate(LocalDateTime.of(2026, 4, 1, 0, 0))
+                    .endDate(LocalDateTime.of(2026, 4, 2, 23, 59, 59))
+                    .mapX(127.0)
+                    .mapY(37.0)
+                    .lDongRegnCd("11")
+                    .status(FestivalStatus.UPCOMING)
+                    .build();
+
+            when(festivalApiClient.fetchFestivalList(1, 10, "20260101")).thenReturn(response);
+            when(festivalRepository.findByContentId("1001")).thenReturn(Optional.of(existingFestival));
+            when(festivalApiConverter.hasListChanges(existingFestival, item)).thenReturn(false);
+
+            // when
+            FestivalSyncResult result = festivalSyncService.syncFestivalList(1, 10, "20260101");
+
+            // then
+            assertThat(result.getTotalCount()).isEqualTo(1);
+            assertThat(result.getCreatedCount()).isEqualTo(0);
+            assertThat(result.getUpdatedCount()).isEqualTo(0);
+
+            verify(festivalApiConverter, times(1)).hasListChanges(existingFestival, item);
+            verify(festivalApiConverter, never()).updateFromListItem(any(), any());
             verify(festivalRepository, never()).save(any(Festival.class));
         }
     }
 
     @Nested
     @DisplayName("상세 보강 테스트")
-    class EnrichFestivalDetailsTest {
+    class EnrichFestivalDetailsByContentIdsTest {
 
         @Test
-        @DisplayName("상세 API 성공 응답이면 상세 정보를 보강한다")
-        void enrichFestivalDetails_success_test() throws Exception {
+        @DisplayName("상세 API 성공 응답이고 상세 정보가 변경된 경우 보강한다")
+        void enrichFestivalDetailsByContentIds_success_test() throws Exception {
             // given
             Festival festival = Festival.builder()
                     .contentId("694576")
@@ -146,23 +188,69 @@ class FestivalSyncServiceTest {
 
             FestivalApiResponse detailResponse = createResponse(List.of(detailItem));
 
-            when(festivalRepository.findAll()).thenReturn(List.of(festival));
+            when(festivalRepository.findByContentId("694576")).thenReturn(Optional.of(festival));
             when(festivalApiClient.fetchFestivalDetail("694576")).thenReturn(detailResponse);
+            when(festivalApiConverter.hasDetailChanges(festival, detailItem)).thenReturn(true);
 
             // when
-            FestivalSyncResult result = festivalSyncService.enrichFestivalDetails();
+            FestivalSyncResult result =
+                    festivalSyncService.enrichFestivalDetailsByContentIds(List.of("694576"));
 
             // then
             assertThat(result.getTotalCount()).isEqualTo(1);
             assertThat(result.getCreatedCount()).isEqualTo(0);
             assertThat(result.getUpdatedCount()).isEqualTo(1);
+            assertThat(result.getFailedCount()).isEqualTo(0);
 
+            verify(festivalApiConverter, times(1)).hasDetailChanges(festival, detailItem);
             verify(festivalApiConverter, times(1)).updateDetailFields(festival, detailItem);
         }
 
         @Test
-        @DisplayName("상세 API 실패 응답이면 보강하지 않고 건너뛴다")
-        void enrichFestivalDetails_fail_response_test() throws Exception {
+        @DisplayName("상세 API 성공 응답이지만 상세 정보가 변경되지 않은 경우 보강하지 않는다")
+        void enrichFestivalDetailsByContentIds_no_change_test() throws Exception {
+            // given
+            Festival festival = Festival.builder()
+                    .contentId("694576")
+                    .title("가야문화축제")
+                    .overview("상세 설명 없음")
+                    .contactNumber(null)
+                    .firstImageUrl("image1.jpg")
+                    .thumbnailUrl("image2.jpg")
+                    .address("경상남도 김해시 대성동")
+                    .homepageUrl(null)
+                    .startDate(LocalDateTime.of(2026, 4, 30, 0, 0))
+                    .endDate(LocalDateTime.of(2026, 5, 3, 23, 59, 59))
+                    .mapX(128.87)
+                    .mapY(35.23)
+                    .lDongRegnCd("48")
+                    .status(FestivalStatus.UPCOMING)
+                    .build();
+
+            FestivalApiItem detailItem = createApiItem("694576", "가야문화축제");
+            FestivalApiResponse detailResponse = createResponse(List.of(detailItem));
+
+            when(festivalRepository.findByContentId("694576")).thenReturn(Optional.of(festival));
+            when(festivalApiClient.fetchFestivalDetail("694576")).thenReturn(detailResponse);
+            when(festivalApiConverter.hasDetailChanges(festival, detailItem)).thenReturn(false);
+
+            // when
+            FestivalSyncResult result =
+                    festivalSyncService.enrichFestivalDetailsByContentIds(List.of("694576"));
+
+            // then
+            assertThat(result.getTotalCount()).isEqualTo(1);
+            assertThat(result.getCreatedCount()).isEqualTo(0);
+            assertThat(result.getUpdatedCount()).isEqualTo(0);
+            assertThat(result.getFailedCount()).isEqualTo(0);
+
+            verify(festivalApiConverter, times(1)).hasDetailChanges(festival, detailItem);
+            verify(festivalApiConverter, never()).updateDetailFields(any(), any());
+        }
+
+        @Test
+        @DisplayName("상세 API 실패 응답이면 보강하지 않고 실패 건수만 증가시킨다")
+        void enrichFestivalDetailsByContentIds_fail_response_test() throws Exception {
             // given
             Festival festival = Festival.builder()
                     .contentId("694576")
@@ -183,17 +271,40 @@ class FestivalSyncServiceTest {
 
             FestivalApiResponse failResponse = createFailureResponse();
 
-            when(festivalRepository.findAll()).thenReturn(List.of(festival));
+            when(festivalRepository.findByContentId("694576")).thenReturn(Optional.of(festival));
             when(festivalApiClient.fetchFestivalDetail("694576")).thenReturn(failResponse);
 
             // when
-            FestivalSyncResult result = festivalSyncService.enrichFestivalDetails();
+            FestivalSyncResult result =
+                    festivalSyncService.enrichFestivalDetailsByContentIds(List.of("694576"));
 
             // then
             assertThat(result.getTotalCount()).isEqualTo(1);
             assertThat(result.getCreatedCount()).isEqualTo(0);
             assertThat(result.getUpdatedCount()).isEqualTo(0);
+            assertThat(result.getFailedCount()).isEqualTo(1);
 
+            verify(festivalApiConverter, never()).hasDetailChanges(any(), any());
+            verify(festivalApiConverter, never()).updateDetailFields(any(), any());
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 contentId이면 실패 건수만 증가시킨다")
+        void enrichFestivalDetailsByContentIds_not_found_test() {
+            // given
+            when(festivalRepository.findByContentId("999999")).thenReturn(Optional.empty());
+
+            // when
+            FestivalSyncResult result =
+                    festivalSyncService.enrichFestivalDetailsByContentIds(List.of("999999"));
+
+            // then
+            assertThat(result.getTotalCount()).isEqualTo(1);
+            assertThat(result.getCreatedCount()).isEqualTo(0);
+            assertThat(result.getUpdatedCount()).isEqualTo(0);
+            assertThat(result.getFailedCount()).isEqualTo(1);
+
+            verify(festivalApiClient, never()).fetchFestivalDetail(anyString());
             verify(festivalApiConverter, never()).updateDetailFields(any(), any());
         }
     }
