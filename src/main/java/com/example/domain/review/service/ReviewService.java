@@ -156,7 +156,7 @@ public class ReviewService {
 
         // 2. 리뷰 존재 여부 확인
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 리뷰입니다."));
+                .orElseThrow(() -> new CustomNotFoundException("존재하지 않는 리뷰입니다."));
 
         // 3. 작성자 본인 여부 확인
         if (!review.getMember().getId().equals(member.getId())) {
