@@ -31,3 +31,4 @@ public class ReviewLike extends BaseCreatedEntity {
 
     //TODOS 생성자 구현
 }
+

@@ -1,0 +1,15 @@
+# JwtUtil에서 사용하는 JWT 설정값이다.
+# 실제 배포 환경에서는 JWT_SECRET을 환경변수로 주입하는 것이 안전하다.
+jwt:
+  secret: ${JWT_SECRET:festival-auth-service-jwt-secret-key-for-local-development-20260414}
+  # 3600000ms는 1시간을 의미한다.
+  access-token-expiration-ms: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:3600000}
+
+security:
+  dev-token:
+    # 개발 중 Postman 테스트용 고정 토큰이다. 운영 환경에서는 DEV_TOKEN_ENABLED=false로 꺼야 한다.
+    enabled: ${DEV_TOKEN_ENABLED:true}
+    value: ${DEV_TOKEN_VALUE:dev-temp-token}
+    login-id: ${DEV_TOKEN_LOGIN_ID:test01}
+    # 관리자 API까지 Postman으로 테스트할 수 있도록 개발용 토큰에는 ADMIN 권한을 준다.
+    role: ${DEV_TOKEN_ROLE:ADMIN}
