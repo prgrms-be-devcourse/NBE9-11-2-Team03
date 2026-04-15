@@ -1,6 +1,5 @@
 package com.example.domain.festival.service;
 
-import com.example.domain.festival.FestivalSyncService;
 import com.example.domain.festival.client.FestivalApiClient;
 import com.example.domain.festival.converter.FestivalApiConverter;
 import com.example.domain.festival.dto.external.*;

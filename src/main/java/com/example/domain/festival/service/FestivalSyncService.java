@@ -1,5 +1,5 @@
 //TODOS: 추후, service 디렉터리로 옮기기
-package com.example.domain.festival;
+package com.example.domain.festival.service;
 
 import com.example.domain.festival.client.FestivalApiClient;
 import com.example.domain.festival.converter.FestivalApiConverter;

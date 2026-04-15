@@ -65,6 +65,7 @@ public class Festival extends BaseEntity {
     @Column(nullable = false)
     private Integer bookMarkCount = 0;
 
+    @Builder.Default
     @Column(nullable = false)
     private Double averageRate = 0.0;
 

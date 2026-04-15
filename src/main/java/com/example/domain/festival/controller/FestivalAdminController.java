@@ -1,5 +1,6 @@
-package com.example.domain.festival;
+package com.example.domain.festival.controller;
 
+import com.example.domain.festival.service.FestivalSyncService;
 import com.example.domain.festival.dto.response.FestivalSyncResult;
 import com.example.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
