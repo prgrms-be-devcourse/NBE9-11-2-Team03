@@ -90,6 +90,7 @@ public class AuthService {
 
     // 회원가입 시 비밀번호를 암호화해서 저장한다.
     private String encodePassword(String rawPassword) {
+        return passwordEncoder.encode(rawPassword);
     }
 
     // 로그인 시 입력한 비밀번호와 저장된 암호화 비밀번호를 비교한다.
