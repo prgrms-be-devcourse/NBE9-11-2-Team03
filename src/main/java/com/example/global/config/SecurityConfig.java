@@ -43,6 +43,8 @@ public class SecurityConfig {
                         ).permitAll()
                         // 관리자 API는 ADMIN 권한이 있는 사용자나 개발용 ADMIN 토큰만 접근할 수 있다.
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // 비회원은 축제목록조회와 축제상세조회만 가능하도록 설정 했다.
+                        .requestMatchers(HttpMethod.GET, "/api/festivals", "/api/festivals/*").permitAll()
                         // 위에서 허용한 API를 제외한 나머지 API는 JWT 또는 개발용 토큰 인증이 필요
                         .anyRequest().authenticated()
                 )

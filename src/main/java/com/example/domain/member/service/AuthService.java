@@ -27,8 +27,8 @@ public class AuthService {
     private final JwtUtil jwtUtil;
 
     @Transactional
-    // 1) 회원가입을 처리한다.
-    // 중복 검사 -> 비밀번호 암호화 -> 엔티티 생성 -> 저장 -> 응답 변환 순서로 진행한다.
+    // 1) 회원가입
+    // 중복 검사 -> 비밀번호 암호화 -> 엔티티 생성 -> 저장 -> 응답 변환 순서로 진행
     public SignupResponse signup(SignupRequest request) {
         validateDuplicateSignupInfo(request);
 
@@ -46,7 +46,7 @@ public class AuthService {
         return SignupResponse.from(savedMember);
     }
 
-    // 2) 로그인을 처리한다.
+    // 2) 로그인
     // 회원 조회 -> 탈퇴 여부 확인 -> 비밀번호 검증 -> 토큰 발급 -> 응답 변환 순서로 진행한다.
     public LoginResponse login(LoginRequest request) {
         Member member = findMemberByLoginId(request.getLoginId());
@@ -57,7 +57,7 @@ public class AuthService {
         return LoginResponse.of(accessToken, member);
     }
 
-    // 3) 회원가입 시 아이디, 이메일, 닉네임 중복 여부를 검사한다.
+    // 3) 회원가입 시 아이디, 이메일, 닉네임 중복 여부를 검사
     // 지금은 골격 단계이므로 예외는 IllegalArgumentException으로 두고,
     // 이후 커스텀 예외와 전역 예외 처리 단계에서 세분화하면 된다.
     private void validateDuplicateSignupInfo(SignupRequest request) {
@@ -74,26 +74,26 @@ public class AuthService {
         }
     }
 
-    // loginId로 회원을 조회한다.
+    // 4)loginId로 회원을 조회
     // 조회 결과가 없으면 서비스 계층 예외로 전환한다.
     private Member findMemberByLoginId(String loginId) {
         return memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 계정입니다."));
     }
 
-    // 탈퇴한 회원은 로그인하지 못하도록 상태값을 검사한다.
+    // 5)탈퇴한 회원은 로그인하지 못하도록 상태값을 검사
     private void validateMemberCanLogin(Member member) {
         if (member.getStatus() == MemberStatus.WITHDRAWN) {
             throw new IllegalArgumentException("탈퇴된 계정입니다.");
         }
     }
 
-    // 회원가입 시 비밀번호를 암호화해서 저장한다.
+    // 6)회원가입 시 비밀번호를 암호화해서 저장
     private String encodePassword(String rawPassword) {
         return passwordEncoder.encode(rawPassword);
     }
 
-    // 로그인 시 입력한 비밀번호와 저장된 암호화 비밀번호를 비교한다.
+    // 7)로그인 시 입력한 비밀번호와 저장된 암호화 비밀번호를 비교
     private void validatePassword(String rawPassword, String encodedPassword) {
         if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
