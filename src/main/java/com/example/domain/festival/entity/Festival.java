@@ -5,15 +5,15 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
 public class Festival extends BaseEntity {
 
     @Column(nullable = false, unique = true)
@@ -34,7 +34,6 @@ public class Festival extends BaseEntity {
     @Column(nullable = false)
     private String address;
 
-    @Column(length = 500)
     private String homepageUrl;
 
     @Column(nullable = false)
@@ -51,97 +50,16 @@ public class Festival extends BaseEntity {
 
     private String lDongRegnCd; // 법정동 코드
 
-    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private FestivalStatus status = FestivalStatus.UPCOMING;
 
-    @Builder.Default
     @Column(nullable = false)
     private Integer viewCount = 0;
 
-
-    @Builder.Default
     @Column(nullable = false)
-    private Integer bookMarkCount = 0;
+    private Integer likeCount = 0;
 
-    @Builder.Default
     @Column(nullable = false)
     private Double averageRate = 0.0;
-
-
-    //초기 데이터용 삭제
-    public Festival(
-            String contentId,
-            String title,
-            String overview,
-            String address,
-            LocalDateTime startDate,
-            LocalDateTime endDate,
-            Double mapX,
-            Double mapY
-    ) {
-        this.contentId = contentId;
-        this.title = title;
-        this.overview = overview;
-        this.address = address;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.mapX = mapX;
-        this.mapY = mapY;
-
-        // 기본값 세팅
-        this.status = FestivalStatus.UPCOMING;
-        this.viewCount = 0;
-        this.averageRate = 0.0;
-        this.bookMarkCount = 0;
-    }
-
-    public void updateAverageRating(Double averageRating) {
-        this.averageRate = averageRating;
-    }
-
-    //기존 축제 데이터 갱신용 메서드 (목록동기화)
-    //contentId는 외부 식별자이므로 보통 수정하지 않는다.
-    public void updateFestivalInfo(
-            String title,
-            String overview,
-            String contactNumber,
-            String firstImageUrl,
-            String thumbnailUrl,
-            String address,
-            String homepageUrl,
-            LocalDateTime startDate,
-            LocalDateTime endDate,
-            Double mapX,
-            Double mapY,
-            String lDongRegnCd,
-            FestivalStatus status
-    ) {
-        this.title = title;
-        this.overview = overview;
-        this.contactNumber = contactNumber;
-        this.firstImageUrl = firstImageUrl;
-        this.thumbnailUrl = thumbnailUrl;
-        this.address = address;
-        this.homepageUrl = homepageUrl;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.mapX = mapX;
-        this.mapY = mapY;
-        this.lDongRegnCd = lDongRegnCd;
-        this.status = status;
-    }
-
-
-    // 기존 축제 데이터 갱신용 메서드 (상세 동기화)
-    public void updateFestivalDetailInfo(
-            String overview,
-            String homepageUrl,
-            String contactNumber
-    ) {
-        this.overview = overview;
-        this.homepageUrl = homepageUrl;
-        this.contactNumber = contactNumber;
-    }
 }
