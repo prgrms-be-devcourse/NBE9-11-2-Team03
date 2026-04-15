@@ -8,6 +8,7 @@ import com.example.domain.member.repository.MemberRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
 
@@ -18,7 +19,9 @@ public class InitDataConfig {
     @Bean
     public CommandLineRunner initData(
             MemberRepository memberRepository,
-            FestivalRepository festivalRepository
+            FestivalRepository festivalRepository,
+            // 초기 회원도 일반 회원가입과 똑같이 암호화된 비밀번호를 저장해야 한다.
+            PasswordEncoder passwordEncoder
     ) {
         return args -> {
 
@@ -26,7 +29,8 @@ public class InitDataConfig {
             if (memberRepository.count() == 0) {
                 Member member = new Member(
                         "테스트회원",
-                        "1234",
+                        // 로그인 검증에서 matches()를 사용하므로 DB에는 암호화된 값이 들어가야 한다.
+                        passwordEncoder.encode("1234"),
                         "test01",
                         "test01@example.com",
                         "축제왕",

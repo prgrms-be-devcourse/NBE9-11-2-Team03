@@ -7,6 +7,7 @@ import com.example.domain.member.dto.response.SignupResponse;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.repository.MemberRepository;
+import com.example.global.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,10 +21,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final MemberRepository memberRepository;
+    // 회원가입 때는 비밀번호를 암호화하고, 로그인 때는 입력값과 저장값을 비교한다.
     private final PasswordEncoder passwordEncoder;
+    // 로그인 성공 후 access token을 만들기 위해 사용하는 JWT 전용 유틸이다.
+    private final JwtUtil jwtUtil;
 
     @Transactional
-    // 회원가입을 처리한다.
+    // 1) 회원가입을 처리한다.
     // 중복 검사 -> 비밀번호 암호화 -> 엔티티 생성 -> 저장 -> 응답 변환 순서로 진행한다.
     public SignupResponse signup(SignupRequest request) {
         validateDuplicateSignupInfo(request);
@@ -42,7 +46,7 @@ public class AuthService {
         return SignupResponse.from(savedMember);
     }
 
-    // 로그인을 처리한다.
+    // 2) 로그인을 처리한다.
     // 회원 조회 -> 탈퇴 여부 확인 -> 비밀번호 검증 -> 토큰 발급 -> 응답 변환 순서로 진행한다.
     public LoginResponse login(LoginRequest request) {
         Member member = findMemberByLoginId(request.getLoginId());
@@ -53,7 +57,7 @@ public class AuthService {
         return LoginResponse.of(accessToken, member);
     }
 
-    // 회원가입 시 아이디, 이메일, 닉네임 중복 여부를 검사한다.
+    // 3) 회원가입 시 아이디, 이메일, 닉네임 중복 여부를 검사한다.
     // 지금은 골격 단계이므로 예외는 IllegalArgumentException으로 두고,
     // 이후 커스텀 예외와 전역 예외 처리 단계에서 세분화하면 된다.
     private void validateDuplicateSignupInfo(SignupRequest request) {
@@ -96,10 +100,9 @@ public class AuthService {
         }
     }
 
-    // JWT 유틸이 아직 없으므로 토큰 발급 위치만 메서드로 분리해둔다.
-    // 다음 단계에서 실제 JWT 발급 로직으로 교체하면 된다.
+    // 토큰을 만드는 세부 로직은 JwtUtil에 맡긴다.
+    // 이렇게 분리하면 AuthService는 로그인 흐름에만 집중할 수 있다.
     private String createAccessToken(Member member) {
-        // TODO: 8단계에서 실제 JWT 발급 로직으로 교체
-        return "temporary-access-token";
+        return jwtUtil.createAccessToken(member);
     }
 }
