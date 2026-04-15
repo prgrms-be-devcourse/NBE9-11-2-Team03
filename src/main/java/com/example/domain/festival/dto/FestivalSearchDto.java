@@ -3,7 +3,7 @@ package com.example.domain.festival.dto;
 import com.example.domain.festival.entity.FestivalStatus;
 
 public record FestivalSearchDto(
-        String area,
+        String regionCode,
         FestivalStatus status,
         Integer month,
         String keyword,

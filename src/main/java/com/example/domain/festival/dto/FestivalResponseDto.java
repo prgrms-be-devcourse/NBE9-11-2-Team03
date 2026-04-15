@@ -14,9 +14,7 @@ public record FestivalResponseDto(
         String status,
         Integer viewCount,
         Integer likeCount,
-        Double averageRate,
-        Double mapX,
-        Double mapY
+        Double averageRate
 ) {
     public static FestivalResponseDto from(Festival festival) {
         return new FestivalResponseDto(
@@ -29,9 +27,7 @@ public record FestivalResponseDto(
                 festival.getStatus().name(),
                 festival.getViewCount(),
                 festival.getBookMarkCount(),
-                festival.getAverageRate(),
-                festival.getMapX(),
-                festival.getMapY()
+                festival.getAverageRate()
         );
     }
 }

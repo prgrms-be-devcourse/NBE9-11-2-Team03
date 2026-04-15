@@ -36,7 +36,7 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
         List<Festival> content = queryFactory
                 .selectFrom(festival)
                 .where(
-                        areaContains(searchDto.area()),
+                        regionCodeEquals(searchDto.regionCode()),
                         statusEquals(searchDto.status()),
                         monthEquals(searchDto.month()),
                         keywordContains(searchDto.keyword()),
@@ -51,7 +51,7 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
                 .select(festival.count())
                 .from(festival)
                 .where(
-                        areaContains(searchDto.area()),
+                        regionCodeEquals(searchDto.regionCode()),
                         statusEquals(searchDto.status()),
                         monthEquals(searchDto.month()),
                         keywordContains(searchDto.keyword()),
@@ -66,7 +66,7 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
         return queryFactory
                 .selectFrom(festival)
                 .where(
-//                        areaContains(searchDto.area()),
+//                        regionCodeEquals(searchDto.regionCode()),
 //                        statusEquals(searchDto.status()),
 //                        monthEquals(searchDto.month()),
 //                        keywordContains(searchDto.keyword()),
@@ -156,7 +156,9 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
         return status !=null?festival.status.eq(status):null;
     }
 
-    private BooleanExpression areaContains(String area) {
-        return StringUtils.hasText(area)?festival.address.contains(area):null;
+    private BooleanExpression regionCodeEquals(String regionCode) {
+        if(!StringUtils.hasText(regionCode))return null;
+
+        return StringUtils.hasText(regionCode)?festival.lDongRegnCd.eq(regionCode):null;
     }
 }
