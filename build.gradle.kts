@@ -1,6 +1,3 @@
-import org.gradle.kotlin.dsl.annotationProcessor
-import org.gradle.kotlin.dsl.implementation
-
 plugins {
     java
     id("org.springframework.boot") version "3.5.13"
@@ -51,6 +48,7 @@ dependencies {
     annotationProcessor("com.querydsl:querydsl-apt:5.0.0:jakarta")
     annotationProcessor("jakarta.annotation:jakarta.annotation-api")
     annotationProcessor("jakarta.persistence:jakarta.persistence-api")
+    implementation("org.jsoup:jsoup:1.17.2") //DB 정제용 의존성추가
 }
 
 tasks.withType<Test> {
