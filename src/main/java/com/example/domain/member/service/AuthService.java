@@ -7,22 +7,28 @@ import com.example.domain.member.dto.response.SignupResponse;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.repository.MemberRepository;
+import com.example.global.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-// 인증 관련 비즈니스 로직을 담당하는 서비스다.
-// 컨트롤러는 요청을 받고, 실제 회원가입/로그인 처리 순서는 이 서비스가 조합한다.
+// 회원가입과 로그인의 비즈니스 흐름을 담당하는 서비스다.
+// 컨트롤러는 요청을 받고, 실제 처리 순서는 이 서비스가 조합한다.
 public class AuthService {
 
     private final MemberRepository memberRepository;
+    // 회원가입 때는 비밀번호를 암호화하고, 로그인 때는 입력값과 저장값을 비교한다.
+    private final PasswordEncoder passwordEncoder;
+    // 로그인 성공 후 access token을 만들기 위해 사용하는 JWT 전용 유틸이다.
+    private final JwtUtil jwtUtil;
 
     @Transactional
-    // 회원가입 흐름을 처리한다.
-    // 중복 검사 -> 비밀번호 처리 -> Member 생성 -> 저장 -> 응답 DTO 변환 순서로 동작한다.
+    // 1) 회원가입을 처리한다.
+    // 중복 검사 -> 비밀번호 암호화 -> 엔티티 생성 -> 저장 -> 응답 변환 순서로 진행한다.
     public SignupResponse signup(SignupRequest request) {
         validateDuplicateSignupInfo(request);
 
@@ -40,8 +46,8 @@ public class AuthService {
         return SignupResponse.from(savedMember);
     }
 
-    // 로그인 흐름을 처리한다.
-    // 회원 조회 -> 탈퇴 여부 확인 -> 비밀번호 검증 -> 토큰 발급 -> 응답 DTO 변환 순서로 동작한다.
+    // 2) 로그인을 처리한다.
+    // 회원 조회 -> 탈퇴 여부 확인 -> 비밀번호 검증 -> 토큰 발급 -> 응답 변환 순서로 진행한다.
     public LoginResponse login(LoginRequest request) {
         Member member = findMemberByLoginId(request.getLoginId());
         validateMemberCanLogin(member);
@@ -51,9 +57,9 @@ public class AuthService {
         return LoginResponse.of(accessToken, member);
     }
 
-    // 회원가입 시 loginId, email, nickname 중복 여부를 검사한다.
+    // 3) 회원가입 시 아이디, 이메일, 닉네임 중복 여부를 검사한다.
     // 지금은 골격 단계이므로 예외는 IllegalArgumentException으로 두고,
-    // 이후 커스텀 예외와 GlobalExceptionHandler 단계에서 구체화하면 된다.
+    // 이후 커스텀 예외와 전역 예외 처리 단계에서 세분화하면 된다.
     private void validateDuplicateSignupInfo(SignupRequest request) {
         if (memberRepository.existsByLoginId(request.getLoginId())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
@@ -69,39 +75,34 @@ public class AuthService {
     }
 
     // loginId로 회원을 조회한다.
-    // Optional을 바로 풀어서, 회원이 없으면 서비스 레벨 예외로 전환한다.
+    // 조회 결과가 없으면 서비스 계층 예외로 전환한다.
     private Member findMemberByLoginId(String loginId) {
         return memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 계정입니다."));
     }
 
-    // 탈퇴 회원은 로그인하지 못하도록 상태값을 검사한다.
+    // 탈퇴한 회원은 로그인하지 못하도록 상태값을 검사한다.
     private void validateMemberCanLogin(Member member) {
         if (member.getStatus() == MemberStatus.WITHDRAWN) {
             throw new IllegalArgumentException("탈퇴된 계정입니다.");
         }
     }
 
-    // 비밀번호 암호화는 다음 단계에서 PasswordEncoder로 연결할 예정이므로
-    // 현재는 서비스 골격만 잡기 위해 별도 메서드로 분리한다.
+    // 회원가입 시 비밀번호를 암호화해서 저장한다.
     private String encodePassword(String rawPassword) {
-        // TODO: 7단계에서 PasswordEncoder.encode(rawPassword)로 교체
-        return rawPassword;
+        return passwordEncoder.encode(rawPassword);
     }
 
-    // 로그인 시 비밀번호 일치 여부를 검사한다.
-    // 현재는 골격 단계라 단순 비교로 두고, 다음 단계에서 PasswordEncoder.matches로 교체한다.
+    // 로그인 시 입력한 비밀번호와 저장된 암호화 비밀번호를 비교한다.
     private void validatePassword(String rawPassword, String encodedPassword) {
-        // TODO: 7단계에서 PasswordEncoder.matches(rawPassword, encodedPassword)로 교체
-        if (!encodedPassword.equals(rawPassword)) {
+        if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
     }
 
-    // JWT 유틸이 아직 없으므로 토큰 발급 지점을 메서드로 먼저 분리해둔다.
-    // 다음 단계에서 JwtTokenProvider 등을 연결하면 login 메서드 본문은 거의 건드리지 않아도 된다.
+    // 토큰을 만드는 세부 로직은 JwtUtil에 맡긴다.
+    // 이렇게 분리하면 AuthService는 로그인 흐름에만 집중할 수 있다.
     private String createAccessToken(Member member) {
-        // TODO: 8단계에서 실제 JWT 발급 로직으로 교체
-        return "temporary-access-token";
+        return jwtUtil.createAccessToken(member);
     }
 }
