@@ -11,7 +11,7 @@ public class ReviewResponseDto {
     private final Long reviewId;
     private final Long festivalId;
     private final Long memberId;
-    private final String memberName;
+    private final String nickname;
     private final String content;
     private final String image;
     private final Integer rating;
@@ -25,7 +25,7 @@ public class ReviewResponseDto {
         this.reviewId = review.getId();
         this.festivalId = review.getFestival().getId();
         this.memberId = review.getMember().getId();
-        this.memberName = review.getMember().getMemberName();
+        this.nickname = review.getMember().getNickname();
         this.content = review.getContent();
         this.image = review.getImage();
         this.rating = review.getRating();
