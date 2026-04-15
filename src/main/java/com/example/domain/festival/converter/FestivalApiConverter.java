@@ -39,7 +39,7 @@ public class FestivalApiConverter {
                 .endDate(endDate)
                 .mapX(parseDouble(item.getMapx()))
                 .mapY(parseDouble(item.getMapy()))
-                .lDongRegnCd(nullableText(item.getLDongRegnCd()))
+                .lDongRegnCd(extractRegionCode(item.getLDongRegnCd()))
                 .status(calculateStatus(startDate, endDate))
                 .build();
     }
@@ -61,7 +61,7 @@ public class FestivalApiConverter {
                 endDate,
                 parseDouble(item.getMapx()),
                 parseDouble(item.getMapy()),
-                nullableText(item.getLDongRegnCd()),
+                extractRegionCode(item.getLDongRegnCd()),
                 calculateStatus(startDate, endDate)
         );
     }
@@ -73,6 +73,18 @@ public class FestivalApiConverter {
                 extractHomepageUrl(item.getHomepage()),
                 normalizeContactNumber(item.getTel())
         );
+    }
+
+    // L_DONG_REGN_CD 앞 2자리만 추출
+    private String extractRegionCode(String lDongRegnCd) {
+        if (lDongRegnCd == null || lDongRegnCd.isBlank()) {
+            return null;
+        }
+
+        // 2자리 이상이면 앞 2자리만 반환
+        return lDongRegnCd.length() >= 2
+                ? lDongRegnCd.substring(0, 2)
+                : lDongRegnCd;
     }
 
     // Homepage 필드 데이터 정제 코드
