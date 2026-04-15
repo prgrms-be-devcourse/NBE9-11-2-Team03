@@ -51,19 +51,17 @@ public class ReviewService {
         return new ReviewResponseDto(savedReview);
 
     }
-    // 신고횟수가 5이상인 review리스트를 DTO로 반환하여 주는 함수
-    public AdminReviewReportPageRes getReportReview(Pageable pageable) {
-        Page<Review> reviews = reviewRepository.findAllByReportCountGreaterThanEqualAndStatus(5,ReviewStatus.ACTIVE,pageable);
-        return AdminReviewReportPageRes.from(reviews);
-    }
+
 
     //리뷰 목록조회
-    public ReviewPageResponseDto getReviewList(Long festivalId, Long memberId, int page, int size) {
+    public ReviewPageResponseDto getReviewList(Long festivalId, String loginId, int page, int size) {
 
         // 1. 로그인 체크
-        if (memberId == null) {
+        if (loginId == null || loginId.equals("anonymousUser")) {
             throw new UnauthorizedException("리뷰 조회는 로그인 후 이용 가능합니다.");
         }
+        Member member = memberRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new UnauthorizedException("로그인한 회원 정보를 찾을 수 없습니다."));
 
         // 2. 축제 존재 체크
         festivalRepository.findById(festivalId)
