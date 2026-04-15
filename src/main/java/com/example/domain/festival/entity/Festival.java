@@ -62,11 +62,6 @@ public class Festival extends BaseEntity {
 
     @Builder.Default
     @Column(nullable = false)
-    private Integer likeCount = 0;
-
-
-    @Builder.Default
-    @Column(nullable = false)
     private Integer bookMarkCount = 0;
 
     @Column(nullable = false)
@@ -96,7 +91,6 @@ public class Festival extends BaseEntity {
         // 기본값 세팅
         this.status = FestivalStatus.UPCOMING;
         this.viewCount = 0;
-        this.likeCount = 0;
         this.averageRate = 0.0;
         this.bookMarkCount = 0;
     }
