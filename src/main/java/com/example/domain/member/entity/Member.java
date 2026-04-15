@@ -121,6 +121,7 @@ public class Member extends BaseEntity {
     // 탈퇴는 물리 삭제 대신 상태값만 바꾸는 논리
     public void withdraw() {
         this.status = MemberStatus.WITHDRAWN;
+        this.nickname="탈퇴한회원_"+this.getId();
     }
 
     //신고횟수 증가
