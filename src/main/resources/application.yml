@@ -13,3 +13,34 @@ security:
     login-id: ${DEV_TOKEN_LOGIN_ID:test01}
     # 관리자 API까지 Postman으로 테스트할 수 있도록 개발용 토큰에는 ADMIN 권한을 준다.
     role: ${DEV_TOKEN_ROLE:ADMIN}
+
+
+spring:
+  application:
+    name: Festival
+
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:file:C:/Devcourse/Team_03/NBE9-11-2-Team03/db_dev;MODE=MySQL
+    #url: jdbc:h2:file:./db_dev;MODE=MySQL
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+
+api:
+  public-data:
+    key: 1c23de1f0ba7dbcc2352a497c7f09c9e36f05effd8fc5f5e7a41a287072b9bc5
+    base-url: https://apis.data.go.kr/B551011/KorService2
