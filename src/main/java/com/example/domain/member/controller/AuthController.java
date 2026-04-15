@@ -45,7 +45,6 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request
     ) {
         LoginResponse response = authService.login(request);
-
         return ResponseEntity.ok(new ApiRes<>(200, "로그인 성공", response));
     }
 }

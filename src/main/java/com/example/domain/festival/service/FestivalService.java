@@ -3,6 +3,7 @@ package com.example.domain.festival.service;
 import com.example.domain.festival.dto.FestivalSearchDto;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
+import com.example.global.exception.CustomNotFoundException;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,6 @@ public class FestivalService {
 
     public Festival getFestival(Long id) {
         return festivalRepository.findById(id)
-                .orElseThrow(()-> new IllegalArgumentException("존재하지 않는 축제입니다."));
+                .orElseThrow(()-> new CustomNotFoundException("404","존재하지 않는 축제입니다."));
     }
 }

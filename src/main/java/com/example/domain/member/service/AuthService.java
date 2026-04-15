@@ -7,11 +7,17 @@ import com.example.domain.member.dto.response.SignupResponse;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.repository.MemberRepository;
+import com.example.global.exception.CustomNotFoundException;
+import com.example.global.exception.DuplicateResourceException;
+import com.example.global.exception.ForbiddenException;
+import com.example.global.exception.UnauthorizedException;
 import com.example.global.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.security.sasl.AuthenticationException;
 
 @Service
 @RequiredArgsConstructor
@@ -62,15 +68,15 @@ public class AuthService {
     // 이후 커스텀 예외와 전역 예외 처리 단계에서 세분화하면 된다.
     private void validateDuplicateSignupInfo(SignupRequest request) {
         if (memberRepository.existsByLoginId(request.getLoginId())) {
-            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
+            throw new DuplicateResourceException("409","이미 사용 중인 아이디입니다.");
         }
 
         if (memberRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+            throw new DuplicateResourceException("409","이미 사용 중인 이메일입니다.");
         }
 
         if (memberRepository.existsByNickname(request.getNickname())) {
-            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+            throw new DuplicateResourceException("409","이미 사용 중인 닉네임입니다.");
         }
     }
 
@@ -78,13 +84,13 @@ public class AuthService {
     // 조회 결과가 없으면 서비스 계층 예외로 전환한다.
     private Member findMemberByLoginId(String loginId) {
         return memberRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 계정입니다."));
+                .orElseThrow(() -> new CustomNotFoundException("404","존재하지 않는 계정입니다."));
     }
 
     // 탈퇴한 회원은 로그인하지 못하도록 상태값을 검사한다.
     private void validateMemberCanLogin(Member member) {
         if (member.getStatus() == MemberStatus.WITHDRAWN) {
-            throw new IllegalArgumentException("탈퇴된 계정입니다.");
+            throw new ForbiddenException("탈퇴된 계정입니다.");
         }
     }
 
@@ -96,10 +102,9 @@ public class AuthService {
     // 로그인 시 입력한 비밀번호와 저장된 암호화 비밀번호를 비교한다.
     private void validatePassword(String rawPassword, String encodedPassword) {
         if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            throw new UnauthorizedException("비밀번호가 일치하지 않습니다.");
         }
     }
-
     // 토큰을 만드는 세부 로직은 JwtUtil에 맡긴다.
     // 이렇게 분리하면 AuthService는 로그인 흐름에만 집중할 수 있다.
     private String createAccessToken(Member member) {

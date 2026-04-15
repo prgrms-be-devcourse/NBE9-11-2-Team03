@@ -71,7 +71,8 @@ public class AdminReviewControllerTest {
         reviewRepository.saveAll(List.of(lowReport, midReport, highReport));
 
         mockMvc.perform(get("/api/admin/reviews/reported")
-                .param("page","0"))
+                .param("page","0")
+                        .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200"))
                 .andExpect(jsonPath("$.message").value("신고된 리뷰 목록 조회가 완료되었습니다."))
@@ -105,6 +106,7 @@ public class AdminReviewControllerTest {
 
         // When
         mockMvc.perform(patch("/api/admin/reviews/" + targetReview.getId() + "/status")
+                        .header("Authorization","Bearer dev-temp-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -142,7 +144,8 @@ public class AdminReviewControllerTest {
         // When
         mockMvc.perform(patch("/api/admin/reviews/" + targetReview.getId() + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request))
+                        .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("리뷰 신고횟수가 초기화 되었습니다."))
                 .andDo(print());
