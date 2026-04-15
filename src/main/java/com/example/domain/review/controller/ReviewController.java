@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -40,13 +41,15 @@ public class ReviewController {
     @Operation(summary = "축제 리뷰 목록 조회", description = "특정 축제의 리뷰 목록을 페이징하여 조회합니다.")
     public ResponseEntity<ApiRes<ReviewPageResponseDto>> getReviewList(
             @PathVariable Long festivalId,
-            @RequestParam(required = false) Long memberId,
             @Parameter(description = "페이지 번호", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기", example = "10")
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication
     ) {
-        ReviewPageResponseDto response = reviewService.getReviewList(festivalId, memberId, page, size);
+        String loginId = authentication.getName();
+
+        ReviewPageResponseDto response = reviewService.getReviewList(festivalId, loginId, page, size);
 
         return ResponseEntity.ok(
                 new ApiRes<>(200, "축제 리뷰 목록 조회 성공", response)
