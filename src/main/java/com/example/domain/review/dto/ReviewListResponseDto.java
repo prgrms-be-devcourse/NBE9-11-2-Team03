@@ -1,6 +1,8 @@
 package com.example.domain.review.dto;
 
 
+import com.example.domain.member.entity.Member;
+import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.review.entity.Review;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,10 +25,16 @@ public class ReviewListResponseDto {
     private LocalDateTime createdAt;
 
     public static ReviewListResponseDto from(Review review) {
+        Member member = review.getMember();
+        String displayName = (member.getStatus() == MemberStatus.WITHDRAWN)
+                ? "탈퇴된 회원입니다."
+                : member.getNickname();
+
         return ReviewListResponseDto.builder()
                 .reviewId(review.getId())
                 .memberId(review.getMember().getId())
-                .nickname(review.getMember().getNickname())
+                .festivalId(review.getFestival().getId())
+                .nickname(displayName)
                 .content(review.getContent())
                 .image(review.getImage())
                 .rating(review.getRating())

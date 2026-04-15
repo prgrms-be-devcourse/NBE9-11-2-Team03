@@ -1,5 +1,7 @@
 package com.example.domain.review.service;
 
+import com.example.domain.admin.dto.AdminReviewBlindRes;
+import com.example.domain.admin.dto.AdminReviewReportPageRes;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
 import com.example.domain.member.entity.Member;
@@ -15,6 +17,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,7 +51,6 @@ public class ReviewService {
         return new ReviewResponseDto(savedReview);
 
     }
-
     //리뷰 목록조회
     public ReviewPageResponseDto getReviewList(Long festivalId, Long memberId, int page, int size) {
 
@@ -68,7 +70,10 @@ public class ReviewService {
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
-        Page<Review> reviewPage = reviewRepository.findByFestivalId(festivalId, pageRequest);
+        Page<Review> reviewPage = reviewRepository.findByFestivalIdAndStatus(
+                festivalId,
+                ReviewStatus.ACTIVE,
+                pageRequest);
 
         return ReviewPageResponseDto.builder()
                 .festivalId(festivalId)
@@ -82,6 +87,10 @@ public class ReviewService {
                 .hasNext(reviewPage.hasNext())
                 .build();
     }
+
+
+
+    //리뷰 수정
     @Transactional
     public ReviewUpdateResponseDto updateReview(Long reviewId, Long memberId, ReviewUpdateRequestDto requestDto) {
 
@@ -128,7 +137,84 @@ public class ReviewService {
         return ReviewUpdateResponseDto.from(review);
     }
 
+    //리뷰 삭제
+    @Transactional
+    public ReviewDeleteResponseDto deleteReview(Long reviewId, Long memberId) {
 
+        // 1. 로그인 확인
+        if (memberId == null) {
+            throw new UnauthorizedException("로그인이 필요합니다.");
+        }
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new UnauthorizedException("로그인이 필요합니다."));
+
+        // 2. 리뷰 존재 여부 확인
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 리뷰입니다."));
+
+        // 3. 작성자 본인 여부 확인
+        if (!review.getMember().getId().equals(member.getId())) {
+            throw new ForbiddenException("본인이 작성한 리뷰만 삭제할 수 있습니다.");
+        }
+
+        // 4. 이미 삭제된 리뷰인지 확인
+        if (review.getStatus() == ReviewStatus.DELETED) {
+            throw new BadRequestException("이미 삭제된 리뷰입니다.");
+        }
+
+        // 5. 블라인드 리뷰 삭제 불가
+        if (review.getStatus() == ReviewStatus.BLIND) {
+            throw new ForbiddenException("블라인드 처리된 리뷰는 삭제할 수 없습니다.");
+        }
+
+        // 6. 리뷰 논리 삭제
+        review.deleteReview();
+
+        // 7. 축제 평균 평점 재계산
+        Festival festival = review.getFestival();
+        Double averageRating = reviewRepository.calculateAverageRatingByFestivalId(festival.getId());
+        festival.updateAverageRating(averageRating == null ? 0.0 : averageRating);
+
+        return ReviewDeleteResponseDto.from(review);
+    }
+
+
+
+
+    // 신고횟수가 5이상인 review리스트를 DTO로 반환하여 주는 함수
+    public AdminReviewReportPageRes getReportReview(Pageable pageable) {
+        Page<Review> reviews = reviewRepository.findAllByReportCountGreaterThanEqualAndStatus(5,ReviewStatus.ACTIVE,pageable);
+        return AdminReviewReportPageRes.from(reviews);
+    }
+
+
+
+    //리뷰를 검토하여 블라인드처리, 신고횟수 초기화하는 함수
+    @Transactional
+    public AdminReviewBlindRes processReviewAction(Long reviewId, String action) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(()->new EntityNotFoundException("해당 리뷰를 찾을 수 없습니다."));//추후 변경 예정
+        if ("BLIND".equalsIgnoreCase(action)) {
+            review.reviewBlind();
+            Member author = review.getMember();
+            if(author!=null){
+                author.increaseReportCount();
+            }
+        }
+        else if ("DISMISS".equalsIgnoreCase(action)) {
+            // 신고 횟수를 0으로 초기화 (무혐의 처리)
+            review.reportCountReset();
+        }
+        else {
+            throw new IllegalArgumentException("잘못된 처리 요청입니다: " + action);
+        }
+        return new AdminReviewBlindRes(
+                review.getId(),
+                review.getStatus(),
+                review.getReportCount()
+        );
+    }
 
 }
 

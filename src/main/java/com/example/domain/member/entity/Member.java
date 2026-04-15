@@ -16,8 +16,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member extends BaseEntity {
-
-    @Column(name = "user_name", nullable = false)
+    @Column(name = "member_name", nullable = false)
     private String memberName;
 
     @Column(nullable = false)
@@ -120,7 +119,14 @@ public class Member extends BaseEntity {
     }
 
     // 탈퇴는 물리 삭제 대신 상태값만 바꾸는 논리
+    //탈퇴한 회원을 닉네임을 바꿈
     public void withdraw() {
         this.status = MemberStatus.WITHDRAWN;
+        this.nickname="탈퇴한회원_"+this.getId();
+    }
+
+    //신고횟수 증가
+    public void increaseReportCount() {
+        this.reportCount++;
     }
 }

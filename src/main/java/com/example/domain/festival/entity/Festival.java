@@ -34,6 +34,7 @@ public class Festival extends BaseEntity {
     @Column(nullable = false)
     private String address;
 
+    @Column(length = 500)
     private String homepageUrl;
 
     @Column(nullable = false)
@@ -63,6 +64,7 @@ public class Festival extends BaseEntity {
     @Column(nullable = false)
     private Integer bookMarkCount = 0;
 
+    @Builder.Default
     @Column(nullable = false)
     private Double averageRate = 0.0;
 
@@ -95,5 +97,49 @@ public class Festival extends BaseEntity {
     }
     public void updateAverageRating(Double averageRating) {
         this.averageRate = averageRating;
+    }
+
+    //기존 축제 데이터 갱신용 메서드 (목록동기화)
+    //contentId는 외부 식별자이므로 보통 수정하지 않는다.
+    public void updateFestivalInfo(
+            String title,
+            String overview,
+            String contactNumber,
+            String firstImageUrl,
+            String thumbnailUrl,
+            String address,
+            String homepageUrl,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Double mapX,
+            Double mapY,
+            String lDongRegnCd,
+            FestivalStatus status
+    ) {
+        this.title = title;
+        this.overview = overview;
+        this.contactNumber = contactNumber;
+        this.firstImageUrl = firstImageUrl;
+        this.thumbnailUrl = thumbnailUrl;
+        this.address = address;
+        this.homepageUrl = homepageUrl;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.mapX = mapX;
+        this.mapY = mapY;
+        this.lDongRegnCd = lDongRegnCd;
+        this.status = status;
+    }
+
+
+    // 기존 축제 데이터 갱신용 메서드 (상세 동기화)
+    public void updateFestivalDetailInfo(
+            String overview,
+            String homepageUrl,
+            String contactNumber
+    ) {
+        this.overview = overview;
+        this.homepageUrl = homepageUrl;
+        this.contactNumber = contactNumber;
     }
 }
