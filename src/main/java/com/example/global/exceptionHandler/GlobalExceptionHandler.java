@@ -1,9 +1,6 @@
 package com.example.global.exceptionHandler;
 
-import com.example.global.exception.CustomNotFoundException;
-import com.example.global.exception.DuplicateResourceException;
-import com.example.global.exception.ForbiddenException;
-import com.example.global.exception.UnauthorizedException;
+import com.example.global.exception.*;
 import com.example.global.rsData.RsData;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
@@ -17,9 +14,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
-
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -32,12 +27,12 @@ public class GlobalExceptionHandler {
                 .body(RsData.fail(e.getMessage()));
     }
 
-    // 404 Not Found (정상 요청이지만 대상 리소스를 찾을 수 없음)
-    @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<RsData<Void>> handleNoSuchElementException(NoSuchElementException e) {
+    // 400 Bad Request (비즈니스 로직상 잘못된 요청)
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<RsData<Void>> handleBadRequestException(BadRequestException e) {
         return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(new RsData<>("404", e.getMessage(), null));
+                .badRequest()
+                .body(RsData.fail(e.getMessage()));
     }
 
     //400 Bad Request (@Valid 검증 실패)
@@ -80,51 +75,16 @@ public class GlobalExceptionHandler {
                 .badRequest()
                 .body(RsData.fail(message));
     }
-    //404 존재하지않는 엔티티일시
-    @ExceptionHandler(CustomNotFoundException.class)
-    public ResponseEntity<RsData<Void>> handleCustomNotFoundException(CustomNotFoundException e){
-        RsData res = new RsData<>(e.getStatus(),e.getMessage());
-        return new ResponseEntity<>(res,HttpStatus.NOT_FOUND);
-    }
 
-    //405 Method Not Allowed (지원하지 않는 HTTP 메서드 호출)
-    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<RsData<Void>> handleHttpRequestMethodNotSupportedException(
-            HttpRequestMethodNotSupportedException e
-    ) {
+    // 400 Bad Request (파라미터 타입 불일치 - 예: 숫자에 문자 입력, Enum 불일치)
+    @ExceptionHandler(org.springframework.beans.TypeMismatchException.class)
+    public ResponseEntity<RsData<Void>> handleTypeMismatchException(org.springframework.beans.TypeMismatchException e) {
+        String invalidValue = e.getValue() != null ? e.getValue().toString() : "null";
+        String message = String.format("잘못된 파라미터 값입니다. 입력값: [%s]", invalidValue);
         return ResponseEntity
-                .status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(new RsData<>("405", "지원하지 않는 HTTP 메서드입니다.", null));
+                .badRequest()
+                .body(RsData.fail(message));
     }
-    // 409 Conflict (데이터 중복)
-    @ExceptionHandler(DuplicateResourceException.class)
-    public ResponseEntity<RsData<Void>> handleDuplicateResourceException(DuplicateResourceException e) {
-        RsData res = new RsData<>(e.getStatusCode(),e.getMessage());
-        return new ResponseEntity<>(res,HttpStatus.CONFLICT);
-    }
-
-     //처리되지 않은 예외의 최종 방어 (500 Internal Server Error)
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<RsData<Void>> handleException(Exception e) {
-        e.printStackTrace();
-
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new RsData<>("500", "서버 오류가 발생했습니다.", null));
-    }
-
-    private String formatFieldError(FieldError error) {
-        return error.getField() + ": " + error.getDefaultMessage();
-    }
-
-    //429 Too Many Requests (외부 API 호출 한도 초과)
-    @ExceptionHandler(HttpClientErrorException.TooManyRequests.class)
-    public ResponseEntity<RsData<Void>> handleTooManyRequests(HttpClientErrorException.TooManyRequests e) {
-        return ResponseEntity
-                .status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(new RsData<>("429", "외부 API 호출 한도를 초과했습니다.", null));
-    }
-
 
     //401 Unauthorized (인증 실패)
     @ExceptionHandler(UnauthorizedException.class)
@@ -141,5 +101,71 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.FORBIDDEN)
                 .body(new RsData<>("403", e.getMessage(), null));
     }
+
+    // 404 Not Found (정상 요청이지만 대상 리소스를 찾을 수 없음)
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<RsData<Void>> handleNoSuchElementException(NoSuchElementException e) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new RsData<>("404", e.getMessage(), null));
+    }
+
+    //404 존재하지않는 엔티티일시
+    @ExceptionHandler(CustomNotFoundException.class)
+    public ResponseEntity<RsData<Void>> handleCustomNotFoundException(CustomNotFoundException e){
+        RsData res = new RsData<>(e.getStatus(),e.getMessage());
+        return new ResponseEntity<>(res,HttpStatus.NOT_FOUND);
+    }
+
+    //405 Method Not Allowed (지원하지 않는 HTTP 메서드 호출)
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<RsData<Void>> handleHttpRequestMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException e
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(new RsData<>("405", "지원하지 않는 HTTP 메서드입니다.", null));
+    }
+
+    // 409 Conflict (데이터 중복)
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<RsData<Void>> handleDuplicateResourceException(DuplicateResourceException e) {
+        RsData res = new RsData<>(e.getStatusCode(),e.getMessage());
+        return new ResponseEntity<>(res,HttpStatus.CONFLICT);
+    }
+
+    // 409 Conflict (데이터베이스 제약 조건 위반 - 예: 중복 키, 외래키 위반)
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<RsData<Void>> handleDataIntegrityViolationException(org.springframework.dao.DataIntegrityViolationException e) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new RsData<>("409", "데이터 무결성 위반이 발생했습니다.", null));
+    }
+
+     //처리되지 않은 예외의 최종 방어 (500 Internal Server Error)
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<RsData<Void>> handleException(Exception e) {
+        e.printStackTrace();
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new RsData<>("500", "서버 오류가 발생했습니다.", null));
+    }
+
+    private String formatFieldError(FieldError error) {
+        return error.getField() + ": " + error.getDefaultMessage();
+    }
+    //429 Too Many Requests (외부 API 호출 한도 초과)
+    @ExceptionHandler(HttpClientErrorException.TooManyRequests.class)
+    public ResponseEntity<RsData<Void>> handleTooManyRequests(HttpClientErrorException.TooManyRequests e) {
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new RsData<>("429", "외부 API 호출 한도를 초과했습니다.", null));
+    }
+
+
+
+
+
 
 }
