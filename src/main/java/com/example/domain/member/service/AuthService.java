@@ -74,26 +74,26 @@ public class AuthService {
         }
     }
 
-    // 4)loginId로 회원을 조회
+    // loginId로 회원을 조회한다.
     // 조회 결과가 없으면 서비스 계층 예외로 전환한다.
     private Member findMemberByLoginId(String loginId) {
         return memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 계정입니다."));
     }
 
-    // 5)탈퇴한 회원은 로그인하지 못하도록 상태값을 검사
+    // 탈퇴한 회원은 로그인하지 못하도록 상태값을 검사한다.
     private void validateMemberCanLogin(Member member) {
         if (member.getStatus() == MemberStatus.WITHDRAWN) {
             throw new IllegalArgumentException("탈퇴된 계정입니다.");
         }
     }
 
-    // 6)회원가입 시 비밀번호를 암호화해서 저장
+    // 회원가입 시 비밀번호를 암호화해서 저장한다.
     private String encodePassword(String rawPassword) {
         return passwordEncoder.encode(rawPassword);
     }
 
-    // 7)로그인 시 입력한 비밀번호와 저장된 암호화 비밀번호를 비교
+    // 로그인 시 입력한 비밀번호와 저장된 암호화 비밀번호를 비교한다.
     private void validatePassword(String rawPassword, String encodedPassword) {
         if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
