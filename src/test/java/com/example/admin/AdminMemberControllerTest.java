@@ -75,23 +75,19 @@ public class AdminMemberControllerTest {
     @Test
     @DisplayName("관리자가 회원을 강제 탈퇴시키면 상태가 WITHDRAWN으로 변경되고 닉네임이 마스킹된다.")
     public void t4() throws Exception {
-        // Given: 테스트용 회원 생성
         Member member = new Member("user4", "1234", "이름4", "user4@test.com", "활동중인회원", 0);
         memberRepository.save(member);
         Long memberId = member.getId();
-
-        // When: 강제 탈퇴 API 호출 (PATCH /api/admin/members/{memberid}/withdraw)
         mockMvc.perform(patch("/api/admin/members/" + memberId + "/withdraw"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200"))
                 .andExpect(jsonPath("$.message").value("회원이 강제 탈퇴 처리되었습니다."))
                 .andDo(print());
 
-        // Then: DB 상태 검증
+        // Then:
         Member withdrawnMember = memberRepository.findById(memberId).get();
 
-        // 1. 상태가 WITHDRAWN(혹은 isDeleted=true)인지 확인
-        // MemberStatus Enum을 사용한다고 가정했습니다.
+        // 1. 상태가 WITHDRAWN인지 확인
         assertThat(withdrawnMember.getStatus()).isEqualTo(MemberStatus.WITHDRAWN);
 
         // 2. DB의 닉네임이 '탈퇴회원_ID' 형식으로 변경되었는지 확인
@@ -114,16 +110,15 @@ public class AdminMemberControllerTest {
 
         // 3. 리뷰 생성 (상태가 ACTIVE여야 목록에 나옴)
         Review review = new Review(member, festival, "탈퇴한 사람이 쓴 리뷰", null, 5);
-        // 만약 Review에 별도의 status 필드가 있다면 ACTIVE로 설정해줘야 함
         reviewRepository.save(review);
 
-        // 4. When: 일반 축제 리뷰 목록 조회 (아까 보여주신 컨트롤러 경로)
+        // 4. When: 일반 축제 리뷰 목록 조회
         mockMvc.perform(get("/api/festivals/" + festival.getId() + "/reviews")
                         .param("page", "0")
                         .param("size", "10")
                         .param("memberId",member.getId().toString()))
                 .andExpect(status().isOk())
-                // resultCode가 200인지 확인 (ApiRes 구조에 맞춰 수정)
+                // resultCode가 200인지 확인
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.data.content[0].nickname").value("탈퇴된 회원입니다."))
                 .andDo(print());

@@ -118,6 +118,12 @@ public class AdminController {
                 )
         );
     }
+
+    /**
+     *회원을 강제 탈퇴 시킵니다. 탈퇴된 회원은 탈퇴한회원_memberId의 닉네임을 가지게 되고 , 리뷰글들은 탈퇴된회원으로 바뀌게 됩니다.
+     * @param memberId 탈퇴시킬 회원 아이다.
+     * @return memberId와 status를 가진 RsData를 ResponseEntity로반환
+     */
     @PatchMapping("/members/{memberId}/withdraw")
     @Operation(summary = "회원 강제 탈퇴 처리", description = "관리자가 회원을 강제 탈퇴처리할 수 있다.")
     public ResponseEntity<RsData<AdminMemberWithdrawnRes>> memberWithdraw(
