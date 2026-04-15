@@ -26,6 +26,7 @@ public class ReviewListResponseDto {
         return ReviewListResponseDto.builder()
                 .reviewId(review.getId())
                 .memberId(review.getMember().getId())
+                .festivalId(review.getFestival().getId())
                 .nickname(review.getMember().getNickname())
                 .content(review.getContent())
                 .image(review.getImage())
