@@ -51,7 +51,6 @@ public class ReviewService {
         return new ReviewResponseDto(savedReview);
 
     }
-
     //리뷰 목록조회
     public ReviewPageResponseDto getReviewList(Long festivalId, Long memberId, int page, int size) {
 

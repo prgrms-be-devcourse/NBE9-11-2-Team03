@@ -1,9 +1,14 @@
 package com.example.admin;
 
+import com.example.domain.festival.entity.Festival;
+import com.example.domain.festival.repository.FestivalRepository;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.repository.MemberRepository;
+import com.example.domain.review.entity.Review;
+import com.example.domain.review.repository.ReviewRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,9 +18,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,6 +38,10 @@ public class AdminMemberControllerTest {
     private MockMvc mockMvc;
     @Autowired
     private MemberRepository memberRepository;
+    @Autowired
+    private ReviewRepository reviewRepository;
+    @Autowired
+    private FestivalRepository festivalRepository;
     
     @Test
     @DisplayName("관리자 전체회원 목록조회")
@@ -60,5 +72,56 @@ public class AdminMemberControllerTest {
                 .andDo(print());
     }
 
-    
+    @Test
+    @DisplayName("관리자가 회원을 강제 탈퇴시키면 상태가 WITHDRAWN으로 변경되고 닉네임이 마스킹된다.")
+    public void t4() throws Exception {
+        Member member = new Member("user4", "1234", "이름4", "user4@test.com", "활동중인회원", 0);
+        memberRepository.save(member);
+        Long memberId = member.getId();
+        mockMvc.perform(patch("/api/admin/members/" + memberId + "/withdraw"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.message").value("회원이 강제 탈퇴 처리되었습니다."))
+                .andDo(print());
+
+        // Then:
+        Member withdrawnMember = memberRepository.findById(memberId).get();
+
+        // 1. 상태가 WITHDRAWN인지 확인
+        assertThat(withdrawnMember.getStatus()).isEqualTo(MemberStatus.WITHDRAWN);
+
+        // 2. DB의 닉네임이 '탈퇴회원_ID' 형식으로 변경되었는지 확인
+        assertThat(withdrawnMember.getNickname()).isEqualTo("탈퇴한회원_" + memberId);
+    }
+
+    @Test
+    @DisplayName("탈퇴한 회원이 작성한 리뷰를 조회하면 닉네임이 '탈퇴된 회원입니다.'로 표시된다.")
+    public void t5() throws Exception {
+        // 1. 회원 생성 및 탈퇴
+        Member member = new Member("user5", "1234", "이름5", "user5@test.com", "탈퇴전이름", 0);
+        memberRepository.save(member);
+        member.withdraw(); // 상태: WITHDRAWN 변경
+        memberRepository.save(member);
+
+        // 2. 축제 생성
+        Festival festival = new Festival("F_005", "축제5", "설명", "주소",
+                LocalDateTime.now(), LocalDateTime.now().plusDays(1), 127.0, 37.0);
+        festivalRepository.save(festival);
+
+        // 3. 리뷰 생성 (상태가 ACTIVE여야 목록에 나옴)
+        Review review = new Review(member, festival, "탈퇴한 사람이 쓴 리뷰", null, 5);
+        reviewRepository.save(review);
+
+        // 4. When: 일반 축제 리뷰 목록 조회
+        mockMvc.perform(get("/api/festivals/" + festival.getId() + "/reviews")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("memberId",member.getId().toString()))
+                .andExpect(status().isOk())
+                // resultCode가 200인지 확인
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.data.content[0].nickname").value("탈퇴된 회원입니다."))
+                .andDo(print());
+    }
+
 }
