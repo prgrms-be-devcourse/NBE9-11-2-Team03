@@ -77,7 +77,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (jwtUtil.validateToken(token)) {
+        if (jwtUtil.validateToken(token) && jwtUtil.isAccessToken(token)) {
             setAuthentication(jwtUtil.getLoginId(token), jwtUtil.getRole(token), request);
         }
     }
