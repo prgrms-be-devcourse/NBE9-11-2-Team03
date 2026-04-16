@@ -52,6 +52,7 @@ public class GlobalExceptionHandler {
                 .body(new RsData<>("401", e.getMessage(), null));
     }
 
+
     // 403 Forbidden (로그인은 했지만 해당 작업 권한이 없을 때 사용합니다.)
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<RsData<Void>> handleForbiddenException(ForbiddenException e) {
@@ -119,13 +120,7 @@ public class GlobalExceptionHandler {
                 .body(RsData.fail(message));
     }
 
-    //401 Unauthorized (인증 실패)
-    @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<RsData<Void>> handleAuthenticationException(UnauthorizedException e) {
-        return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body(new RsData<>("401", e.getMessage(), null));
-    }
+
 
     // 404 Not Found (정상 요청이지만 대상 리소스를 찾을 수 없음)
     @ExceptionHandler(NoSuchElementException.class)

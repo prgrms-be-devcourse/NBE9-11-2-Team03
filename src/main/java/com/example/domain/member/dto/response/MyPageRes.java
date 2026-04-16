@@ -6,7 +6,7 @@ public record MyPageRes(
         Long memberId,
         String email,
         String nickname,
-        String reviewCount,
-        String bookMarkCount
+        long reviewCount,
+        long bookMarkCount
 ) {
 }
