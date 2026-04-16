@@ -19,7 +19,6 @@ public class FestivalService {
         return festivalRepository.searchFestivals(searchDto, pageable);
     }
 
-
     public Festival getFestival(Long id) {
         return festivalRepository.findById(id)
                 .orElseThrow(()-> new CustomNotFoundException("404","존재하지 않는 축제입니다."));

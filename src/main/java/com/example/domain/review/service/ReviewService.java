@@ -156,7 +156,7 @@ public class ReviewService {
 
         // 2. 리뷰 존재 여부 확인
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 리뷰입니다."));
+                .orElseThrow(() -> new CustomNotFoundException("존재하지 않는 리뷰입니다."));
 
         // 3. 작성자 본인 여부 확인
         if (!review.getMember().getId().equals(member.getId())) {
@@ -199,7 +199,11 @@ public class ReviewService {
     @Transactional
     public AdminReviewBlindRes processReviewAction(Long reviewId, String action) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(()->new CustomNotFoundException("404","해당 리뷰를 찾을 수 없습니다."));//추후 변경 예정
+                .orElseThrow(()->new CustomNotFoundException("404","존재하지 않는 리뷰입니다."));//추후 변경 예정
+        if(review.getStatus()==ReviewStatus.DELETED){
+            throw new BadRequestException("삭제된 리뷰는 상태를 변경할 수 없습니다.");
+        }
+
         if ("BLIND".equalsIgnoreCase(action)) {
             review.reviewBlind();
             Member author = review.getMember();
@@ -212,7 +216,7 @@ public class ReviewService {
             review.reportCountReset();
         }
         else {
-            throw new IllegalArgumentException("잘못된 처리 요청입니다: " + action);
+            throw new IllegalArgumentException("허용되지 않은 리뷰 상태입니다.: " + action);
         }
         return new AdminReviewBlindRes(
                 review.getId(),
