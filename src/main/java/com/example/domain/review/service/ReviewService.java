@@ -198,8 +198,7 @@ public class ReviewService {
         return AdminReviewReportPageRes.from(reviews);
     }
 
-
-
+    // 관리자가 특정 리뷰에 접수된 신고 사유 목록을 확인합니다.
     //리뷰를 검토하여 블라인드처리, 신고횟수 초기화하는 함수
     @Transactional
     public AdminReviewBlindRes processReviewAction(Long reviewId, String action) {
