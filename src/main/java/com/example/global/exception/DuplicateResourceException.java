@@ -12,4 +12,8 @@ public class DuplicateResourceException extends RuntimeException{
         this.statusCode=statusCode;
         this.message=message;
     }
+
+    public String getStatusCode() {
+        return statusCode;
+    }
 }

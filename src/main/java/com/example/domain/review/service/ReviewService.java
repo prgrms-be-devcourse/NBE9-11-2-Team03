@@ -1,7 +1,6 @@
 package com.example.domain.review.service;
 
 import com.example.domain.admin.dto.AdminReviewBlindRes;
-import com.example.domain.admin.dto.AdminReviewReportDetailPageRes;
 import com.example.domain.admin.dto.AdminReviewReportPageRes;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
@@ -11,8 +10,6 @@ import com.example.domain.review.dto.*;
 import com.example.domain.review.entity.Review;
 import com.example.domain.review.entity.ReviewStatus;
 import com.example.domain.review.repository.ReviewRepository;
-import com.example.domain.reviewreport.entity.ReviewReport;
-import com.example.domain.reviewreport.repository.ReviewReportRepository;
 import com.example.global.exception.BadRequestException;
 import com.example.global.exception.CustomNotFoundException;
 import com.example.global.exception.ForbiddenException;
@@ -33,7 +30,6 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final MemberRepository memberRepository;
     private final FestivalRepository festivalRepository;
-    private final ReviewReportRepository reviewReportRepository;
 
     //리뷰 작성
     @Transactional
@@ -198,16 +194,6 @@ public class ReviewService {
     }
 
     // 관리자가 특정 리뷰에 접수된 신고 사유 목록을 확인합니다.
-    public AdminReviewReportDetailPageRes getReviewReportDetails(Long reviewId, Pageable pageable) {
-        reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 리뷰입니다."));
-
-        Page<ReviewReport> reports = reviewReportRepository.findByReviewId(reviewId, pageable);
-        return AdminReviewReportDetailPageRes.from(reports);
-    }
-
-
-
     //리뷰를 검토하여 블라인드처리, 신고횟수 초기화하는 함수
     @Transactional
     public AdminReviewBlindRes processReviewAction(Long reviewId, String action) {

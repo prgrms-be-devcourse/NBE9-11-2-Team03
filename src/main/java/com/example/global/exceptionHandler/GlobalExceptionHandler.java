@@ -68,14 +68,6 @@ public class GlobalExceptionHandler {
                 .body(new RsData<>("409", e.getMessage(), null));
     }
 
-    // 400 Bad Request (삭제된 리뷰 신고처럼 요청 조건이 맞지 않을 때 사용합니다.)
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<RsData<Void>> handleBadRequestException(BadRequestException e) {
-        return ResponseEntity
-                .badRequest()
-                .body(new RsData<>("400", e.getMessage(), null));
-    }
-
     // 400 Bad Request (@Valid 검증 실패 시 사용합니다.)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<RsData<Void>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
@@ -133,14 +125,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(new RsData<>("401", e.getMessage(), null));
-    }
-
-    //403 Forbidden (인증은 되었지만 권한 부족)
-    @ExceptionHandler(ForbiddenException.class)
-    public ResponseEntity<RsData<Void>> handleForbiddenException(ForbiddenException e) {
-        return ResponseEntity
-                .status(HttpStatus.FORBIDDEN)
-                .body(new RsData<>("403", e.getMessage(), null));
     }
 
     // 404 Not Found (정상 요청이지만 대상 리소스를 찾을 수 없음)

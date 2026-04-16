@@ -3,7 +3,6 @@ package com.example.domain.reviewreport.entity;
 import com.example.domain.member.entity.Member;
 import com.example.domain.review.entity.Review;
 import com.example.global.entity.BaseCreatedEntity;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -35,13 +34,9 @@ public class ReviewReport extends BaseCreatedEntity {
     @JoinColumn(name = "review_id", nullable = false)
     private Review review;
 
-    @Column(columnDefinition = "TEXT")
-    private String reason;
-
-    // 신고한 회원, 신고 대상 리뷰, 신고 사유를 받아 review_report 데이터를 생성합니다.
-    public ReviewReport(Member reporter, Review review, String reason) {
+    // 신고한 회원과 신고 대상 리뷰를 받아 review_report 데이터를 생성합니다.
+    public ReviewReport(Member reporter, Review review) {
         this.reporter = reporter;
         this.review = review;
-        this.reason = reason;
     }
 }

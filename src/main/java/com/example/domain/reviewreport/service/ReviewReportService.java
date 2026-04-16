@@ -26,7 +26,7 @@ public class ReviewReportService {
     private final MemberRepository memberRepository;
 
     @Transactional
-    public ReviewReportResponse reportReview(Long reviewId, String loginId, String reason) {
+    public ReviewReportResponse reportReview(Long reviewId, String loginId) {
         // 로그인하지 않은 사용자는 리뷰 신고를 할 수 없습니다.
         if (loginId == null || loginId.equals("anonymousUser")) {
             throw new UnauthorizedException("로그인이 필요합니다.");
@@ -51,7 +51,7 @@ public class ReviewReportService {
         }
 
         // 신고 정보를 저장하고, 리뷰의 누적 신고 수도 함께 증가시킵니다.
-        ReviewReport reviewReport = reviewReportRepository.save(new ReviewReport(reporter, review, reason));
+        ReviewReport reviewReport = reviewReportRepository.save(new ReviewReport(reporter, review));
         review.increaseReportCount();
 
         return new ReviewReportResponse(reviewReport.getId());

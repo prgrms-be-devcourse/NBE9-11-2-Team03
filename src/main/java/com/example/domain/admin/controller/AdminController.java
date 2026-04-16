@@ -93,24 +93,6 @@ public class AdminController {
         );
     }
 
-    @GetMapping("/reviews/{reviewId}/reports")
-    @Operation(summary = "리뷰 신고 사유 조회", description = "관리자가 특정 리뷰에 접수된 신고 사유 목록을 조회합니다.")
-    public ResponseEntity<RsData<AdminReviewReportDetailPageRes>> getReviewReportDetails(
-            @PathVariable Long reviewId,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
-    ) {
-        // 신고 사유는 관리자만 확인할 수 있도록 관리자 API에서만 조회합니다.
-        AdminReviewReportDetailPageRes reportList = reviewService.getReviewReportDetails(reviewId, pageable);
-
-        return ResponseEntity.ok(
-                new RsData<>(
-                        "200",
-                        "리뷰 신고 사유 목록 조회가 완료되었습니다.",
-                        reportList
-                )
-        );
-    }
-
     /**
      *관리자가 Blind혹은 신고수를 초기화 하는 컨트롤러 메서드
      * @param reviewId:검토할 리뷰 id
