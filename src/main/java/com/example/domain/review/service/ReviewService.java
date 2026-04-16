@@ -11,6 +11,7 @@ import com.example.domain.review.entity.Review;
 import com.example.domain.review.entity.ReviewStatus;
 import com.example.domain.review.repository.ReviewRepository;
 import com.example.global.exception.BadRequestException;
+import com.example.global.exception.CustomNotFoundException;
 import com.example.global.exception.ForbiddenException;
 import com.example.global.exception.UnauthorizedException;
 import jakarta.persistence.EntityNotFoundException;
@@ -34,9 +35,9 @@ public class ReviewService {
     @Transactional
     public ReviewResponseDto createReview(Long festivalId, Long memberId, ReviewCreateRequestDto requestDto){
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new EntityNotFoundException("회원이 존재 하지 않습니다."));
+                .orElseThrow(() -> new CustomNotFoundException("회원이 존재 하지 않습니다."));
         Festival festival = festivalRepository.findById(festivalId)
-                .orElseThrow(()-> new EntityNotFoundException("축제가 존재하지 않습니다."));
+                .orElseThrow(()-> new CustomNotFoundException("축제가 존재하지 않습니다."));
 
         Review review = new Review(
                 member,
@@ -65,7 +66,7 @@ public class ReviewService {
 
         // 2. 축제 존재 체크
         festivalRepository.findById(festivalId)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 축제입니다."));
+                .orElseThrow(() -> new CustomNotFoundException("존재하지 않는 축제입니다."));
 
         // 3. 리뷰 조회
         PageRequest pageRequest = PageRequest.of(
@@ -100,11 +101,11 @@ public class ReviewService {
 
         // 1. 토큰 사용자 확인 (인증 연결 전 임시)
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new EntityNotFoundException("회원이 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomNotFoundException("회원이 존재하지 않습니다."));
 
         // 2. 리뷰 존재 여부 확인
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 리뷰입니다."));
+                .orElseThrow(() -> new CustomNotFoundException("존재하지 않는 리뷰입니다."));
 
         // 3. 작성자 본인 여부 확인
         if (!review.getMember().getId().equals(member.getId())) {
@@ -155,7 +156,7 @@ public class ReviewService {
 
         // 2. 리뷰 존재 여부 확인
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 리뷰입니다."));
+                .orElseThrow(() -> new CustomNotFoundException("존재하지 않는 리뷰입니다."));
 
         // 3. 작성자 본인 여부 확인
         if (!review.getMember().getId().equals(member.getId())) {
@@ -198,7 +199,11 @@ public class ReviewService {
     @Transactional
     public AdminReviewBlindRes processReviewAction(Long reviewId, String action) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(()->new EntityNotFoundException("해당 리뷰를 찾을 수 없습니다."));//추후 변경 예정
+                .orElseThrow(()->new CustomNotFoundException("404","존재하지 않는 리뷰입니다."));//추후 변경 예정
+        if(review.getStatus()==ReviewStatus.DELETED){
+            throw new BadRequestException("삭제된 리뷰는 상태를 변경할 수 없습니다.");
+        }
+
         if ("BLIND".equalsIgnoreCase(action)) {
             review.reviewBlind();
             Member author = review.getMember();
@@ -211,7 +216,7 @@ public class ReviewService {
             review.reportCountReset();
         }
         else {
-            throw new IllegalArgumentException("잘못된 처리 요청입니다: " + action);
+            throw new IllegalArgumentException("허용되지 않은 리뷰 상태입니다.: " + action);
         }
         return new AdminReviewBlindRes(
                 review.getId(),
