@@ -1,11 +1,13 @@
-package com.example.global.exception;
+package com.example.global.exceptionHandler;
 
+import com.example.global.exception.*;
 import com.example.global.rsData.RsData;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -13,9 +15,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
-
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -28,12 +28,12 @@ public class GlobalExceptionHandler {
                 .body(RsData.fail(e.getMessage()));
     }
 
-    // 404 Not Found (정상 요청이지만 대상 리소스를 찾을 수 없음)
-    @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<RsData<Void>> handleNoSuchElementException(NoSuchElementException e) {
+    // 400 Bad Request (비즈니스 로직상 잘못된 요청)
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<RsData<Void>> handleBadRequestException(BadRequestException e) {
         return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(new RsData<>("404", e.getMessage(), null));
+                .badRequest()
+                .body(RsData.fail(e.getMessage()));
     }
 
     // 404 Not Found (요청한 데이터를 찾을 수 없을 때 사용합니다.)
@@ -81,9 +81,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         String message = e.getBindingResult()
                 .getFieldErrors()
-                .stream()
-                .map(this::formatFieldError)
-                .collect(Collectors.joining(", "));
+                .get(0) // 첫 번째 에러 메시지 하나만 가져오기
+                .getDefaultMessage();
 
         return ResponseEntity
                 .badRequest()
@@ -118,6 +117,47 @@ public class GlobalExceptionHandler {
                 .body(RsData.fail(message));
     }
 
+    // 400 Bad Request (파라미터 타입 불일치 - 예: 숫자에 문자 입력, Enum 불일치)
+    @ExceptionHandler(org.springframework.beans.TypeMismatchException.class)
+    public ResponseEntity<RsData<Void>> handleTypeMismatchException(org.springframework.beans.TypeMismatchException e) {
+        String invalidValue = e.getValue() != null ? e.getValue().toString() : "null";
+        String message = String.format("잘못된 파라미터 값입니다. 입력값: [%s]", invalidValue);
+        return ResponseEntity
+                .badRequest()
+                .body(RsData.fail(message));
+    }
+
+    //401 Unauthorized (인증 실패)
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<RsData<Void>> handleAuthenticationException(UnauthorizedException e) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(new RsData<>("401", e.getMessage(), null));
+    }
+
+    //403 Forbidden (인증은 되었지만 권한 부족)
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<RsData<Void>> handleForbiddenException(ForbiddenException e) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(new RsData<>("403", e.getMessage(), null));
+    }
+
+    // 404 Not Found (정상 요청이지만 대상 리소스를 찾을 수 없음)
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<RsData<Void>> handleNoSuchElementException(NoSuchElementException e) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new RsData<>("404", e.getMessage(), null));
+    }
+
+    //404 존재하지않는 엔티티일시
+    @ExceptionHandler(CustomNotFoundException.class)
+    public ResponseEntity<RsData<Void>> handleCustomNotFoundException(CustomNotFoundException e){
+        RsData res = new RsData<>(e.getStatus(),e.getMessage());
+        return new ResponseEntity<>(res,HttpStatus.NOT_FOUND);
+    }
+
     //405 Method Not Allowed (지원하지 않는 HTTP 메서드 호출)
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<RsData<Void>> handleHttpRequestMethodNotSupportedException(
@@ -126,6 +166,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.METHOD_NOT_ALLOWED)
                 .body(new RsData<>("405", "지원하지 않는 HTTP 메서드입니다.", null));
+    }
+
+    // 409 Conflict (데이터 중복)
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<RsData<Void>> handleDuplicateResourceException(DuplicateResourceException e) {
+        RsData res = new RsData<>(e.getStatusCode(),e.getMessage());
+        return new ResponseEntity<>(res,HttpStatus.CONFLICT);
+    }
+
+    // 409 Conflict (데이터베이스 제약 조건 위반 - 예: 중복 키, 외래키 위반)
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<RsData<Void>> handleDataIntegrityViolationException(org.springframework.dao.DataIntegrityViolationException e) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new RsData<>("409", "데이터 무결성 위반이 발생했습니다.", null));
     }
 
      //처리되지 않은 예외의 최종 방어 (500 Internal Server Error)
@@ -141,7 +196,6 @@ public class GlobalExceptionHandler {
     private String formatFieldError(FieldError error) {
         return error.getField() + ": " + error.getDefaultMessage();
     }
-
     //429 Too Many Requests (외부 API 호출 한도 초과)
     @ExceptionHandler(HttpClientErrorException.TooManyRequests.class)
     public ResponseEntity<RsData<Void>> handleTooManyRequests(HttpClientErrorException.TooManyRequests e) {
@@ -150,23 +204,9 @@ public class GlobalExceptionHandler {
                 .body(new RsData<>("429", "외부 API 호출 한도를 초과했습니다.", null));
     }
 
-    //TODOS: 시큐리티 도입 후, 관련 예외처리
-    /* 추후 시큐리티 도입 시 확장
-    //401 Unauthorized (인증 실패)
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<RsData<Void>> handleAuthenticationException(AuthenticationException e) {
-        return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body(new RsData<>("401", "인증이 필요합니다.", null));
-    }
 
-    // 403 Forbidden (인증은 되었지만 권한 부족)
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<RsData<Void>> handleAccessDeniedException(AccessDeniedException e) {
-        return ResponseEntity
-                .status(HttpStatus.FORBIDDEN)
-                .body(new RsData<>("403", "접근 권한이 없습니다.", null));
-    }
 
-     */
+
+
+
 }
