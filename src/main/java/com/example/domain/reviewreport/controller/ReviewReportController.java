@@ -25,7 +25,7 @@ public class ReviewReportController {
             Authentication authentication
     ) {
         // Security에서 인증된 사용자의 loginId를 꺼내 신고 서비스로 전달합니다.
-        String loginId = authentication == null ? null : authentication.getName();
+        String loginId = authentication.getName();
         ReviewReportResponse response = reviewReportService.reportReview(reviewId, loginId);
 
         return ResponseEntity.status(HttpStatus.CREATED)

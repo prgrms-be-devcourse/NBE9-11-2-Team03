@@ -27,11 +27,6 @@ public class ReviewReportService {
 
     @Transactional
     public ReviewReportResponse reportReview(Long reviewId, String loginId) {
-        // 로그인하지 않은 사용자는 리뷰 신고를 할 수 없습니다.
-        if (loginId == null || loginId.equals("anonymousUser")) {
-            throw new UnauthorizedException("로그인이 필요합니다.");
-        }
-
         // 인증된 사용자의 loginId로 실제 신고 회원을 조회합니다.
         Member reporter = memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new UnauthorizedException("로그인한 회원 정보를 찾을 수 없습니다."));
