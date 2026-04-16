@@ -23,6 +23,18 @@ public class ReviewCreateRequestDto {
     @Schema(description = "별점", example = "5")
     private Integer rating;
 
+    public String getContent() {
+        return content;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public Integer getRating() {
+        return rating;
+    }
+
 
 
 }

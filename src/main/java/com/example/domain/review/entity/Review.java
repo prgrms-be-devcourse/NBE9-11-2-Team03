@@ -71,5 +71,9 @@ public class Review extends BaseEntity {
     public  void reportCountReset(){
         this.reportCount=0;
     }
-}
 
+    // 리뷰가 신고될 때마다 누적 신고 수를 1 증가시킵니다.
+    public void increaseReportCount() {
+        this.reportCount++;
+    }
+}

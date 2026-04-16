@@ -19,4 +19,8 @@ public class CustomNotFoundException extends RuntimeException{
         this.message=message;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
 }
