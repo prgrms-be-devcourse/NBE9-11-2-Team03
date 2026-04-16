@@ -22,13 +22,14 @@ public class MyPageService {
     private final FestivalBookmarkRepository festivalBookmarkRepository;
 
 
+    // 마이페이지의 자신을 조회하는 메서드입니다.
     public MyPageRes getMyPage(String loginId) {
         Member member = memberRepository.findByLoginId(loginId).orElseThrow(()->new CustomNotFoundException("로그인한 회원 정보를 찾을 수 없습니다."));
         if(member.getStatus()== MemberStatus.WITHDRAWN){
             throw new ForbiddenException("탈퇴한 회원은 마이페이지를 조회할 수 없습니다.");
         }
-        long reviewCount = reviewRepository.countByMemberId(member.getId());
-        long bookMarkCount= festivalBookmarkRepository.countByMemberId(member.getId());
+        long reviewCount = reviewRepository.countByMemberId(member.getId()); //자신이 단 리뷰수
+        long bookMarkCount= festivalBookmarkRepository.countByMemberId(member.getId()); // 자신이 찜한 축제의 수
         return new MyPageRes(
                 member.getId(),
                 member.getEmail(),

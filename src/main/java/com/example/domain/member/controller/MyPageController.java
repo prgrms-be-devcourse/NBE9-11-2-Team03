@@ -16,6 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class MyPageController {
     private final MyPageService myPageService;
+
+    /**
+     * 마이페이지 조회를 하여 사용자가 자신의 정보를 얻을 수 있다.
+     * @param authentication 로그인 토큰 로그인 토큰을 통해 loginId를 얻는다.
+     * @return 로그인id,이메일,닉네임,리뷰 수 ,찜수를 담은 DTo를 RSDATA로 감싸여 반환
+     */
     @GetMapping()
     public ResponseEntity<RsData<MyPageRes>> getMyPage(
             Authentication authentication
