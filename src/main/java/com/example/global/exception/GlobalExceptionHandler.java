@@ -12,6 +12,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -70,7 +72,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handleMissingServletRequestParameterException(
             MissingServletRequestParameterException e
     ) {
-        String message = "필수 요청 파라미터가 누락되었습니다. parameter=" + e.getParameterName();
+        String message = "필수 요청 파라미터가 누락되었습니다.";
+
+        return ResponseEntity
+                .badRequest()
+                .body(RsData.fail(message));
+    }
+
+    //400 Bad Request (@RequestParam, @PathVariable 타입 변환 실패)
+    //클라이언트가 int, long 등의 숫자 파라미터에 문자열 등 잘못된 값을 전달했을 때 발생
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<RsData<Void>> handleMethodArgumentTypeMismatchException(
+            MethodArgumentTypeMismatchException e
+    ) {
+        String message = "요청 파라미터 타입이 올바르지 않습니다.";
 
         return ResponseEntity
                 .badRequest()
@@ -107,6 +122,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(new RsData<>("429", "외부 API 호출 한도를 초과했습니다.", null));
+    }
+
+    //502 Bad Gateway (외부 API 서버 오류)
+    @ExceptionHandler(HttpServerErrorException.class)
+    public ResponseEntity<RsData<Void>> handleHttpServerErrorException(
+            HttpServerErrorException e
+    ) {
+        return ResponseEntity
+                .status(e.getStatusCode())
+                .body(new RsData<>(
+                        String.valueOf(e.getStatusCode().value()),
+                        "외부 API 서버 오류가 발생했습니다.",
+                        null
+                ));
     }
 
     //TODOS: 시큐리티 도입 후, 관련 예외처리
