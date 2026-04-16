@@ -104,10 +104,7 @@ public class ReviewService {
     @Transactional
     public ReviewUpdateResponseDto updateReview(Long reviewId, String loginId, ReviewUpdateRequestDto requestDto) {
 
-        // 1. 로그인 체크
-        if (loginId == null || loginId.equals("anonymousUser")) {
-            throw new UnauthorizedException("로그인이 필요합니다.");
-        }
+
 
         // 2. 로그인한 회원 조회
         Member member = memberRepository.findByLoginId(loginId)
@@ -156,10 +153,7 @@ public class ReviewService {
     @Transactional
     public ReviewDeleteResponseDto deleteReview(Long reviewId, String loginId) {
 
-        // 1. 로그인 체크
-        if (loginId == null || loginId.equals("anonymousUser")) {
-            throw new UnauthorizedException("로그인이 필요합니다.");
-        }
+
 
         // 2. 로그인한 회원 조회
         Member member = memberRepository.findByLoginId(loginId)
