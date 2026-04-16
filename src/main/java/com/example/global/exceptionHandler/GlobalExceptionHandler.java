@@ -14,7 +14,6 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
-
 import java.util.NoSuchElementException;
 
 @RestControllerAdvice
@@ -28,7 +27,13 @@ public class GlobalExceptionHandler {
                 .body(RsData.fail(e.getMessage()));
     }
 
-
+    // 400 Bad Request (비즈니스 로직상 잘못된 요청)
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<RsData<Void>> handleBadRequestException(BadRequestException e) {
+        return ResponseEntity
+                .badRequest()
+                .body(RsData.fail(e.getMessage()));
+    }
 
     //400 Bad Request (@Valid 검증 실패)
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -70,7 +75,6 @@ public class GlobalExceptionHandler {
                 .badRequest()
                 .body(RsData.fail(message));
     }
-
 
     // 400 Bad Request (파라미터 타입 불일치 - 예: 숫자에 문자 입력, Enum 불일치)
     @ExceptionHandler(org.springframework.beans.TypeMismatchException.class)
@@ -122,6 +126,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.METHOD_NOT_ALLOWED)
                 .body(new RsData<>("405", "지원하지 않는 HTTP 메서드입니다.", null));
     }
+
     // 409 Conflict (데이터 중복)
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<RsData<Void>> handleDuplicateResourceException(DuplicateResourceException e) {
@@ -137,7 +142,7 @@ public class GlobalExceptionHandler {
                 .body(new RsData<>("409", "데이터 무결성 위반이 발생했습니다.", null));
     }
 
-     //처리되지 않은 예외의 최종 방어 (500 Internal Server Error)
+    //처리되지 않은 예외의 최종 방어 (500 Internal Server Error)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<RsData<Void>> handleException(Exception e) {
         e.printStackTrace();
@@ -150,7 +155,6 @@ public class GlobalExceptionHandler {
     private String formatFieldError(FieldError error) {
         return error.getField() + ": " + error.getDefaultMessage();
     }
-
     //429 Too Many Requests (외부 API 호출 한도 초과)
     @ExceptionHandler(HttpClientErrorException.TooManyRequests.class)
     public ResponseEntity<RsData<Void>> handleTooManyRequests(HttpClientErrorException.TooManyRequests e) {
@@ -158,4 +162,10 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(new RsData<>("429", "외부 API 호출 한도를 초과했습니다.", null));
     }
+
+
+
+
+
+
 }
