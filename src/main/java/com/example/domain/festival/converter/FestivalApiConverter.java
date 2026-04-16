@@ -100,8 +100,7 @@ public class FestivalApiConverter {
     public void updateDetailFields(Festival festival, FestivalApiItem item) {
         festival.updateFestivalDetailInfo(
                 defaultText(item.getOverview()),
-                extractHomepageUrl(item.getHomepage()),
-                normalizeContactNumber(item.getTel())
+                extractHomepageUrl(item.getHomepage())
         );
     }
 
@@ -109,13 +108,18 @@ public class FestivalApiConverter {
     public boolean hasDetailChanges(Festival festival, FestivalApiItem item) {
         String overview = defaultText(item.getOverview());
         String homepageUrl = extractHomepageUrl(item.getHomepage());
-        String contactNumber = normalizeContactNumber(item.getTel());
 
         return !festival.isSameDetailInfo(
                 overview,
-                homepageUrl,
-                contactNumber
+                homepageUrl
         );
+    }
+
+    //상세 정보 미완료 상태 여부 판단
+    public boolean isDetailIncomplete(Festival festival) {
+        return "상세 설명 없음".equals(festival.getOverview())
+                || festival.getHomepageUrl() == null
+                || festival.getHomepageUrl().isBlank();
     }
 
     // L_DONG_REGN_CD 앞 2자리만 추출

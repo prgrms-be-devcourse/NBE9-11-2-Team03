@@ -138,12 +138,10 @@ public class Festival extends BaseEntity {
     // 기존 축제 데이터 갱신용 메서드 (상세 동기화)
     public void updateFestivalDetailInfo(
             String overview,
-            String homepageUrl,
-            String contactNumber
+            String homepageUrl
     ) {
         this.overview = overview;
         this.homepageUrl = homepageUrl;
-        this.contactNumber = contactNumber;
     }
 
     //축제 목록 변경 여부 판단 메서드
@@ -176,11 +174,9 @@ public class Festival extends BaseEntity {
     //축제 상세 장보 변경 여부 판단 메서드
     public boolean isSameDetailInfo(
             String overview,
-            String homepageUrl,
-            String contactNumber
+            String homepageUrl
     ) {
         return Objects.equals(this.overview, overview)
-                && Objects.equals(this.homepageUrl, homepageUrl)
-                && Objects.equals(this.contactNumber, contactNumber);
+                && Objects.equals(this.homepageUrl, homepageUrl);
     }
 }

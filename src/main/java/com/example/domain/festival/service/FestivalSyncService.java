@@ -12,9 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -70,6 +68,23 @@ public class FestivalSyncService {
         return new FestivalSyncResult(items.size(), createdCount, updatedCount, 0, changedContentIds);
     }
 
+
+    //상세 보강 대상 contentId 수집 (목록 변경 + 상세 미완료)
+    @Transactional(readOnly = true)
+    public List<String> collectDetailEnrichTargetContentIds(List<String> changedContentIds) {
+        Set<String> targetContentIds = new LinkedHashSet<>(changedContentIds);
+
+        List<Festival> festivals = festivalRepository.findAll();
+
+        for (Festival festival : festivals) {
+            if (festivalApiConverter.isDetailIncomplete(festival)) {
+                targetContentIds.add(festival.getContentId());
+            }
+        }
+
+        return new ArrayList<>(targetContentIds);
+    }
+
     //상세 API 기반 상세 정보 보강 (변경된 contentId 목록만 변경 대상 ex. 초기적재 or 실제 변경)
     public FestivalSyncResult enrichFestivalDetailsByContentIds(List<String> contentIds) {
         int updatedCount = 0;
@@ -80,6 +95,8 @@ public class FestivalSyncService {
                 Festival festival = festivalRepository.findByContentId(contentId)
                         .orElseThrow(() -> new NoSuchElementException(
                                 "해당 contentId의 축제를 찾을 수 없습니다. contentId=" + contentId));
+
+                boolean wasDetailIncomplete = festivalApiConverter.isDetailIncomplete(festival);
 
                 FestivalApiResponse detailResponse =
                         festivalApiClient.fetchFestivalDetail(contentId);
@@ -111,10 +128,13 @@ public class FestivalSyncService {
 
                 FestivalApiItem detailItem = detailItems.get(0);
 
-                //TODOS: 상세 정보도 실제 변경된 경우에만 update 수행
-                if (festivalApiConverter.hasDetailChanges(festival, detailItem)) {
+                //상세 정보도 실제 변경된 경우에만 update 수행
+                if (wasDetailIncomplete || festivalApiConverter.hasDetailChanges(festival, detailItem)) {
                     festivalApiConverter.updateDetailFields(festival, detailItem);
-                    updatedCount++;
+
+                    if (!wasDetailIncomplete) {
+                        updatedCount++;
+                    }
                 }
 
             } catch (Exception e) {
