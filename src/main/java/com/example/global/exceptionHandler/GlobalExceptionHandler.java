@@ -2,6 +2,7 @@ package com.example.global.exceptionHandler;
 
 import com.example.global.exception.*;
 import com.example.global.rsData.RsData;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +36,39 @@ public class GlobalExceptionHandler {
                 .body(RsData.fail(e.getMessage()));
     }
 
-    //400 Bad Request (@Valid 검증 실패)
+    // 404 Not Found (요청한 데이터를 찾을 수 없을 때 사용합니다.)
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<RsData<Void>> handleEntityNotFoundException(EntityNotFoundException e) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new RsData<>("404", e.getMessage(), null));
+    }
+
+    // 401 Unauthorized (로그인이 필요한데 회원 정보를 확인할 수 없을 때 사용합니다.)
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<RsData<Void>> handleUnauthorizedException(UnauthorizedException e) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(new RsData<>("401", e.getMessage(), null));
+    }
+
+    // 403 Forbidden (로그인은 했지만 해당 작업 권한이 없을 때 사용합니다.)
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<RsData<Void>> handleForbiddenException(ForbiddenException e) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(new RsData<>("403", e.getMessage(), null));
+    }
+
+    // 409 Conflict (이미 신고한 리뷰처럼 같은 요청이 중복될 때 사용합니다.)
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<RsData<Void>> handleConflictException(ConflictException e) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new RsData<>("409", e.getMessage(), null));
+    }
+
+    // 400 Bad Request (@Valid 검증 실패 시 사용합니다.)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<RsData<Void>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         String message = e.getBindingResult()
@@ -92,14 +125,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(new RsData<>("401", e.getMessage(), null));
-    }
-
-    //403 Forbidden (인증은 되었지만 권한 부족)
-    @ExceptionHandler(ForbiddenException.class)
-    public ResponseEntity<RsData<Void>> handleForbiddenException(ForbiddenException e) {
-        return ResponseEntity
-                .status(HttpStatus.FORBIDDEN)
-                .body(new RsData<>("403", e.getMessage(), null));
     }
 
     // 404 Not Found (정상 요청이지만 대상 리소스를 찾을 수 없음)
