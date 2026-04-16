@@ -32,12 +32,28 @@ public class ReviewService {
 
     //리뷰 작성
     @Transactional
-    public ReviewResponseDto createReview(Long festivalId, Long memberId, ReviewCreateRequestDto requestDto){
-        Member member = memberRepository.findById(memberId)
+    public ReviewResponseDto createReview(Long festivalId, String loginId, ReviewCreateRequestDto requestDto){
+
+        // 1. 로그인 체크
+        if (loginId == null || loginId.equals("anonymousUser")) {
+            throw new UnauthorizedException("로그인이 필요합니다.");
+        }
+
+        // 2. 로그인한 회원 조회
+        Member member = memberRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new UnauthorizedException("로그인한 회원 정보를 찾을 수 없습니다."));
+
+        // 3. 축제 존재 여부 확인
+        Festival festival = festivalRepository.findById(festivalId)
+                .orElseThrow(() -> new EntityNotFoundException("축제가 존재하지 않습니다."));
+
+
+        /* Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new EntityNotFoundException("회원이 존재 하지 않습니다."));
         Festival festival = festivalRepository.findById(festivalId)
-                .orElseThrow(()-> new EntityNotFoundException("축제가 존재하지 않습니다."));
+                .orElseThrow(()-> new EntityNotFoundException("축제가 존재하지 않습니다.")); */
 
+        //4. 리뷰 생성
         Review review = new Review(
                 member,
                 festival,
