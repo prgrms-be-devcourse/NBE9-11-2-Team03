@@ -81,9 +81,12 @@ public class ReviewController {
     @DeleteMapping("/reviews/{reviewId}")
     @Operation(summary = "축제 리뷰 삭제", description = "본인이 작성한 리뷰를 삭제합니다.")
     public ResponseEntity<ApiRes<ReviewDeleteResponseDto>> deleteReview(
-            @PathVariable Long reviewId
+            @PathVariable Long reviewId,
+            Authentication authentication
     ) {
-        ReviewDeleteResponseDto response = reviewService.deleteReview(reviewId, TEST_MEMBER_ID);
+        String loginId = authentication.getName();
+
+        ReviewDeleteResponseDto response = reviewService.deleteReview(reviewId, loginId);
 
         return ResponseEntity.ok(
                 new ApiRes<>(200, "리뷰 삭제가 완료되었습니다.", response)
