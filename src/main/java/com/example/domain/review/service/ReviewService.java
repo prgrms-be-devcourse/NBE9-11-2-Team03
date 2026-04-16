@@ -11,9 +11,9 @@ import com.example.domain.review.entity.Review;
 import com.example.domain.review.entity.ReviewStatus;
 import com.example.domain.review.repository.ReviewRepository;
 import com.example.global.exception.BadRequestException;
+import com.example.global.exception.CustomNotFoundException;
 import com.example.global.exception.ForbiddenException;
 import com.example.global.exception.UnauthorizedException;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -45,15 +45,9 @@ public class ReviewService {
 
         // 3. 축제 존재 여부 확인
         Festival festival = festivalRepository.findById(festivalId)
-                .orElseThrow(() -> new EntityNotFoundException("축제가 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomNotFoundException("축제가 존재하지 않습니다."));
 
 
-        /* Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new EntityNotFoundException("회원이 존재 하지 않습니다."));
-        Festival festival = festivalRepository.findById(festivalId)
-                .orElseThrow(()-> new EntityNotFoundException("축제가 존재하지 않습니다.")); */
-
-        //4. 리뷰 생성
         Review review = new Review(
                 member,
                 festival,
@@ -81,7 +75,7 @@ public class ReviewService {
 
         // 2. 축제 존재 체크
         festivalRepository.findById(festivalId)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 축제입니다."));
+                .orElseThrow(() -> new CustomNotFoundException("존재하지 않는 축제입니다."));
 
         // 3. 리뷰 조회
         PageRequest pageRequest = PageRequest.of(
@@ -125,36 +119,36 @@ public class ReviewService {
 
         // 3. 리뷰 존재 여부 확인
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 리뷰입니다."));
+                .orElseThrow(() -> new CustomNotFoundException("존재하지 않는 리뷰입니다."));
 
-        // 4. 작성자 본인 여부 확인
+        // 3. 작성자 본인 여부 확인
         if (!review.getMember().getId().equals(member.getId())) {
             throw new ForbiddenException("본인이 작성한 리뷰만 수정할 수 있습니다.");
         }
 
-        // 5. 삭제된 리뷰 수정 불가
+        // 4. 삭제된 리뷰 수정 불가
         if (review.getStatus() == ReviewStatus.DELETED) {
             throw new BadRequestException("삭제된 리뷰는 수정할 수 없습니다.");
         }
 
-        // 6. 블라인드 리뷰 수정 불가
+        // 5. 블라인드 리뷰 수정 불가
         if (review.getStatus() == ReviewStatus.BLIND) {
             throw new ForbiddenException("블라인드 처리된 리뷰는 수정할 수 없습니다.");
         }
 
-        // 7. 평점 검증
+        // 6. 평점 검증
         if (requestDto.getRating() < 1 || requestDto.getRating() > 5) {
             throw new BadRequestException("평점은 1점부터 5점까지 입력 가능합니다.");
         }
 
-        // 8. 리뷰 수정
+        // 7. 리뷰 수정
         review.updateReview(
                 requestDto.getContent(),
                 requestDto.getImage(),
                 requestDto.getRating()
         );
 
-        // 9. 평균 평점 재계산
+        // 8. 평균 평점 재계산
         Festival festival = review.getFestival();
         Double averageRating = reviewRepository.calculateAverageRatingByFestivalId(festival.getId());
         festival.updateAverageRating(averageRating == null ? 0.0 : averageRating);
@@ -177,7 +171,7 @@ public class ReviewService {
 
         // 3. 리뷰 존재 여부 확인
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 리뷰입니다."));
+                .orElseThrow(() -> new CustomNotFoundException("존재하지 않는 리뷰입니다."));
 
         // 4. 작성자 본인 여부 확인
         if (!review.getMember().getId().equals(member.getId())) {
@@ -220,7 +214,11 @@ public class ReviewService {
     @Transactional
     public AdminReviewBlindRes processReviewAction(Long reviewId, String action) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(()->new EntityNotFoundException("해당 리뷰를 찾을 수 없습니다."));//추후 변경 예정
+                .orElseThrow(()->new CustomNotFoundException("404","존재하지 않는 리뷰입니다."));//추후 변경 예정
+        if(review.getStatus()==ReviewStatus.DELETED){
+            throw new BadRequestException("삭제된 리뷰는 상태를 변경할 수 없습니다.");
+        }
+
         if ("BLIND".equalsIgnoreCase(action)) {
             review.reviewBlind();
             Member author = review.getMember();
@@ -233,7 +231,7 @@ public class ReviewService {
             review.reportCountReset();
         }
         else {
-            throw new IllegalArgumentException("잘못된 처리 요청입니다: " + action);
+            throw new IllegalArgumentException("허용되지 않은 리뷰 상태입니다.: " + action);
         }
         return new AdminReviewBlindRes(
                 review.getId(),

@@ -18,8 +18,8 @@ public class ReviewCreateRequestDto {
     @Schema(description = "리뷰 이미지 URL", example = "https://example.com/review-image.jpg")
     private String image;
 
-    @Min(1)
-    @Max(5)
+    @Min(value = 1, message = "평점은 1점부터 5점까지 입력 가능합니다.")
+    @Max(value = 5, message = "평점은 1점부터 5점까지 입력 가능합니다.")
     @Schema(description = "별점", example = "5")
     private Integer rating;
 

@@ -1,16 +1,28 @@
 package com.example.global.config;
 
+import com.example.global.rsData.RsData;
 import com.example.global.security.JwtAuthenticationFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import com.example.global.rsData.RsData;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.MediaType;
+
+import java.nio.charset.StandardCharsets;
+
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 @EnableWebSecurity
@@ -18,6 +30,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -29,6 +42,30 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 // JWT는 요청마다 토큰을 확인하므로 서버에 로그인 세션을 저장하지 않음
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // 인증이 필요한 API에 토큰 없이 접근하거나, 잘못된 토큰으로 접근했을 때 실행
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+                            objectMapper.writeValue(
+                                    response.getWriter(),
+                                    new RsData<>("401", "로그인이 필요합니다.", null)
+                            );
+                        })
+                        // 로그인은 성공했지만 필요한 권한이 없는 API에 접근했을 때 실행된다.
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+                            objectMapper.writeValue(
+                                    response.getWriter(),
+                                    new RsData<>("403", "접근 권한이 없습니다.", null)
+                            );
+                        })
+                )
                 // H2 콘솔을 iframe으로 열 수 있도록 개발 중에만 같은 출처 frame을 허용한다.
                 .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
                 .authorizeHttpRequests(auth -> auth

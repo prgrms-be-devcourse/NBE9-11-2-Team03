@@ -47,7 +47,8 @@ public class AdminMemberControllerTest {
     @DisplayName("관리자 전체회원 목록조회")
     void t1() throws Exception{
         mockMvc.perform(get("/api/admin/members")
-                .param("page","0"))
+                .param("page","0")
+                        .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200"))
                 .andExpect(jsonPath("$.message").value("회원 목록 조회 성공"))
@@ -62,7 +63,8 @@ public class AdminMemberControllerTest {
         memberRepository.saveAll(List.of(lowReport, midReport, highReport));
 
         mockMvc.perform(get("/api/admin/members/reported")
-                        .param("page", "0"))
+                        .param("page", "0")
+                        .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200"))
                 .andExpect(jsonPath("$.message").value("신고 누적회원 조회 성공"))
@@ -78,7 +80,8 @@ public class AdminMemberControllerTest {
         Member member = new Member("user4", "1234", "이름4", "user4@test.com", "활동중인회원", 0);
         memberRepository.save(member);
         Long memberId = member.getId();
-        mockMvc.perform(patch("/api/admin/members/" + memberId + "/withdraw"))
+        mockMvc.perform(patch("/api/admin/members/" + memberId + "/withdraw")
+                        .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200"))
                 .andExpect(jsonPath("$.message").value("회원이 강제 탈퇴 처리되었습니다."))
@@ -116,7 +119,8 @@ public class AdminMemberControllerTest {
         mockMvc.perform(get("/api/festivals/" + festival.getId() + "/reviews")
                         .param("page", "0")
                         .param("size", "10")
-                        .param("memberId",member.getId().toString()))
+                        .param("memberId",member.getId().toString())
+                        .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
                 // resultCode가 200인지 확인
                 .andExpect(jsonPath("$.status").value(200))
