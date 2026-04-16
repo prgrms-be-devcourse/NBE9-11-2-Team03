@@ -34,16 +34,13 @@ public class ReviewService {
     @Transactional
     public ReviewResponseDto createReview(Long festivalId, String loginId, ReviewCreateRequestDto requestDto){
 
-        // 1. 로그인 체크
-        if (loginId == null || loginId.equals("anonymousUser")) {
-            throw new UnauthorizedException("로그인이 필요합니다.");
-        }
 
-        // 2. 로그인한 회원 조회
+
+        // 1. 로그인한 회원 조회
         Member member = memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new UnauthorizedException("로그인한 회원 정보를 찾을 수 없습니다."));
 
-        // 3. 축제 존재 여부 확인
+        // 2. 축제 존재 여부 확인
         Festival festival = festivalRepository.findById(festivalId)
                 .orElseThrow(() -> new CustomNotFoundException("축제가 존재하지 않습니다."));
 
@@ -70,8 +67,7 @@ public class ReviewService {
         if (loginId == null || loginId.equals("anonymousUser")) {
             throw new UnauthorizedException("리뷰 조회는 로그인 후 이용 가능합니다.");
         }
-        Member member = memberRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new UnauthorizedException("로그인한 회원 정보를 찾을 수 없습니다."));
+
 
         // 2. 축제 존재 체크
         festivalRepository.findById(festivalId)
