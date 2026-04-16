@@ -65,9 +65,12 @@ public class ReviewController {
     @Operation(summary = "축제 리뷰 수정", description = "본인이 작성한 리뷰를 수정합니다.")
     public ResponseEntity<ApiRes<ReviewUpdateResponseDto>> updateReview(
             @PathVariable Long reviewId,
-            @Valid @RequestBody ReviewUpdateRequestDto requestDto
+            @Valid @RequestBody ReviewUpdateRequestDto requestDto,
+            Authentication authentication
     ) {
-        ReviewUpdateResponseDto response = reviewService.updateReview(reviewId, TEST_MEMBER_ID, requestDto);
+        String loginId = authentication.getName();
+
+        ReviewUpdateResponseDto response = reviewService.updateReview(reviewId, loginId, requestDto);
 
         return ResponseEntity.ok(
                 new ApiRes<>(200, "리뷰가 성공적으로 수정되었습니다.", response)

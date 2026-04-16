@@ -112,44 +112,49 @@ public class ReviewService {
 
     //리뷰 수정
     @Transactional
-    public ReviewUpdateResponseDto updateReview(Long reviewId, Long memberId, ReviewUpdateRequestDto requestDto) {
+    public ReviewUpdateResponseDto updateReview(Long reviewId, String loginId, ReviewUpdateRequestDto requestDto) {
 
-        // 1. 토큰 사용자 확인 (인증 연결 전 임시)
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new EntityNotFoundException("회원이 존재하지 않습니다."));
+        // 1. 로그인 체크
+        if (loginId == null || loginId.equals("anonymousUser")) {
+            throw new UnauthorizedException("로그인이 필요합니다.");
+        }
 
-        // 2. 리뷰 존재 여부 확인
+        // 2. 로그인한 회원 조회
+        Member member = memberRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new UnauthorizedException("로그인한 회원 정보를 찾을 수 없습니다."));
+
+        // 3. 리뷰 존재 여부 확인
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 리뷰입니다."));
 
-        // 3. 작성자 본인 여부 확인
+        // 4. 작성자 본인 여부 확인
         if (!review.getMember().getId().equals(member.getId())) {
             throw new ForbiddenException("본인이 작성한 리뷰만 수정할 수 있습니다.");
         }
 
-        // 4. 삭제된 리뷰 수정 불가
+        // 5. 삭제된 리뷰 수정 불가
         if (review.getStatus() == ReviewStatus.DELETED) {
             throw new BadRequestException("삭제된 리뷰는 수정할 수 없습니다.");
         }
 
-        // 5. 블라인드 리뷰 수정 불가
+        // 6. 블라인드 리뷰 수정 불가
         if (review.getStatus() == ReviewStatus.BLIND) {
             throw new ForbiddenException("블라인드 처리된 리뷰는 수정할 수 없습니다.");
         }
 
-        // 6. 평점 검증
+        // 7. 평점 검증
         if (requestDto.getRating() < 1 || requestDto.getRating() > 5) {
             throw new BadRequestException("평점은 1점부터 5점까지 입력 가능합니다.");
         }
 
-        // 7. 리뷰 수정
+        // 8. 리뷰 수정
         review.updateReview(
                 requestDto.getContent(),
                 requestDto.getImage(),
                 requestDto.getRating()
         );
 
-        // 8. 평균 평점 재계산
+        // 9. 평균 평점 재계산
         Festival festival = review.getFestival();
         Double averageRating = reviewRepository.calculateAverageRatingByFestivalId(festival.getId());
         festival.updateAverageRating(averageRating == null ? 0.0 : averageRating);
