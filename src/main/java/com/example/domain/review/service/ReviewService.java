@@ -14,7 +14,6 @@ import com.example.global.exception.BadRequestException;
 import com.example.global.exception.CustomNotFoundException;
 import com.example.global.exception.ForbiddenException;
 import com.example.global.exception.UnauthorizedException;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -33,11 +32,18 @@ public class ReviewService {
 
     //리뷰 작성
     @Transactional
-    public ReviewResponseDto createReview(Long festivalId, Long memberId, ReviewCreateRequestDto requestDto){
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new CustomNotFoundException("회원이 존재 하지 않습니다."));
+    public ReviewResponseDto createReview(Long festivalId, String loginId, ReviewCreateRequestDto requestDto){
+
+
+
+        // 1. 로그인한 회원 조회
+        Member member = memberRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new UnauthorizedException("로그인한 회원 정보를 찾을 수 없습니다."));
+
+        // 2. 축제 존재 여부 확인
         Festival festival = festivalRepository.findById(festivalId)
-                .orElseThrow(()-> new CustomNotFoundException("축제가 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomNotFoundException("축제가 존재하지 않습니다."));
+
 
         Review review = new Review(
                 member,
@@ -61,8 +67,7 @@ public class ReviewService {
         if (loginId == null || loginId.equals("anonymousUser")) {
             throw new UnauthorizedException("리뷰 조회는 로그인 후 이용 가능합니다.");
         }
-        Member member = memberRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new UnauthorizedException("로그인한 회원 정보를 찾을 수 없습니다."));
+
 
         // 2. 축제 존재 체크
         festivalRepository.findById(festivalId)
@@ -97,13 +102,15 @@ public class ReviewService {
 
     //리뷰 수정
     @Transactional
-    public ReviewUpdateResponseDto updateReview(Long reviewId, Long memberId, ReviewUpdateRequestDto requestDto) {
+    public ReviewUpdateResponseDto updateReview(Long reviewId, String loginId, ReviewUpdateRequestDto requestDto) {
 
-        // 1. 토큰 사용자 확인 (인증 연결 전 임시)
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new CustomNotFoundException("회원이 존재하지 않습니다."));
 
-        // 2. 리뷰 존재 여부 확인
+
+        // 2. 로그인한 회원 조회
+        Member member = memberRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new UnauthorizedException("로그인한 회원 정보를 찾을 수 없습니다."));
+
+        // 3. 리뷰 존재 여부 확인
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new CustomNotFoundException("존재하지 않는 리뷰입니다."));
 
@@ -144,39 +151,37 @@ public class ReviewService {
 
     //리뷰 삭제
     @Transactional
-    public ReviewDeleteResponseDto deleteReview(Long reviewId, Long memberId) {
+    public ReviewDeleteResponseDto deleteReview(Long reviewId, String loginId) {
 
-        // 1. 로그인 확인
-        if (memberId == null) {
-            throw new UnauthorizedException("로그인이 필요합니다.");
-        }
 
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new UnauthorizedException("로그인이 필요합니다."));
 
-        // 2. 리뷰 존재 여부 확인
+        // 2. 로그인한 회원 조회
+        Member member = memberRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new UnauthorizedException("로그인한 회원 정보를 찾을 수 없습니다."));
+
+        // 3. 리뷰 존재 여부 확인
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new CustomNotFoundException("존재하지 않는 리뷰입니다."));
 
-        // 3. 작성자 본인 여부 확인
+        // 4. 작성자 본인 여부 확인
         if (!review.getMember().getId().equals(member.getId())) {
             throw new ForbiddenException("본인이 작성한 리뷰만 삭제할 수 있습니다.");
         }
 
-        // 4. 이미 삭제된 리뷰인지 확인
+        // 5. 이미 삭제된 리뷰인지 확인
         if (review.getStatus() == ReviewStatus.DELETED) {
             throw new BadRequestException("이미 삭제된 리뷰입니다.");
         }
 
-        // 5. 블라인드 리뷰 삭제 불가
+        // 6. 블라인드 리뷰 삭제 불가
         if (review.getStatus() == ReviewStatus.BLIND) {
             throw new ForbiddenException("블라인드 처리된 리뷰는 삭제할 수 없습니다.");
         }
 
-        // 6. 리뷰 논리 삭제
+        // 7. 리뷰 논리 삭제
         review.deleteReview();
 
-        // 7. 축제 평균 평점 재계산
+        // 8. 축제 평균 평점 재계산
         Festival festival = review.getFestival();
         Double averageRating = reviewRepository.calculateAverageRatingByFestivalId(festival.getId());
         festival.updateAverageRating(averageRating == null ? 0.0 : averageRating);
