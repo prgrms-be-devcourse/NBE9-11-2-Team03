@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,9 +21,13 @@ public class FestivalService {
         return festivalRepository.searchFestivals(searchDto, pageable);
     }
 
+    @Transactional
     public Festival getFestival(Long id) {
-        return festivalRepository.findById(id)
+        Festival festival=  festivalRepository.findById(id)
                 .orElseThrow(()-> new IllegalArgumentException("존재하지 않는 축제입니다."));
+
+        festival.addViewCount();
+        return festival;
     }
 
     public List<Festival> getNearbyMarkers(FestivalSearchDto searchDto){

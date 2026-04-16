@@ -94,7 +94,7 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
                 switch (order.getProperty()) {
                     case "viewCount" -> orderSpecifiers.add(new OrderSpecifier<>(direction, festival.viewCount));
                     case "startDate" -> orderSpecifiers.add(new OrderSpecifier<>(direction, festival.startDate));
-                    case "bookmarkCount" ->
+                    case "bookMarkCount" ->
                             orderSpecifiers.add(new OrderSpecifier<>(direction, festival.bookMarkCount));
                 }
             }

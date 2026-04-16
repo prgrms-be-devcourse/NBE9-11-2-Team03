@@ -36,6 +36,7 @@ public class FestivalRepositoryImplTest {
                 .overview("서울 벚꽃축제 개요입니다.")
                 .mapX(126.9780)
                 .mapY(37.5665)
+                .lDongRegnCd("11")
                 .title("진행중인 서울 벚꽃축제")
                 .address("서울 영등포구")
                 .status(FestivalStatus.ONGOING)
@@ -52,6 +53,7 @@ public class FestivalRepositoryImplTest {
                 .overview("경기 불꽃축제 개요입니다.")
                 .mapX(127.0)
                 .mapY(37.0)
+                .lDongRegnCd("41")
                 .title("예정된 경기 불꽃축제")
                 .address("경기 가평군")
                 .status(FestivalStatus.UPCOMING)
@@ -67,6 +69,7 @@ public class FestivalRepositoryImplTest {
                 .overview("부산 바다축제 개요입니다.")
                 .mapX(129.0)
                 .mapY(35.0)
+                .lDongRegnCd("26")
                 .title("종료된 부산 바다축제")
                 .address("부산 해운대구")
                 .status(FestivalStatus.ENDED)
@@ -82,6 +85,7 @@ public class FestivalRepositoryImplTest {
                 .overview("제주 감귤축제 개요입니다.")
                 .mapX(126.5)
                 .mapY(33.4)
+                .lDongRegnCd("50")
                 .title("진행중인 제주 감귤축제")
                 .address("제주 서귀포시")
                 .status(FestivalStatus.ONGOING)
@@ -97,6 +101,7 @@ public class FestivalRepositoryImplTest {
                 .overview("강릉 커피축제 개요입니다.")
                 .mapX(128.876)
                 .mapY(37.751)
+                .lDongRegnCd("51")
                 .title("종료된 강릉 커피축제")
                 .address("강원도 강릉시")
                 .status(FestivalStatus.ENDED)
@@ -134,7 +139,7 @@ public class FestivalRepositoryImplTest {
     @DisplayName("2. 지역 및 키워드 필터링 테스트")
     void searchFilterTest() {
         // given
-        FestivalSearchDto condition = new FestivalSearchDto("서울", null, null, "벚꽃", null, null,null);
+        FestivalSearchDto condition = new FestivalSearchDto("11", null, null, "벚꽃", null, null,null);
         PageRequest pageRequest = PageRequest.of(0, 10);
 
         // when
