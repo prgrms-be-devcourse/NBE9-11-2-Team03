@@ -21,16 +21,19 @@ public class ReviewController {
 
     private final ReviewService reviewService;
 
-    //인증 연결 전 임시 테스트용
-    private static final Long TEST_MEMBER_ID = 1L;
+
 
     @PostMapping("/festivals/{festivalId}/reviews")
     @Operation(summary = "축제 리뷰 작성", description = "특정 축제에 리뷰를 작성합니다.")
     public ResponseEntity<ApiRes<ReviewResponseDto>> createReview(
             @PathVariable Long festivalId,
-            @Valid @RequestBody ReviewCreateRequestDto requestDto
+            @Valid @RequestBody ReviewCreateRequestDto requestDto,
+            Authentication authentication
             ){
-        ReviewResponseDto response = reviewService.createReview(festivalId, TEST_MEMBER_ID, requestDto);
+
+        String loginId =authentication.getName();
+
+        ReviewResponseDto response = reviewService.createReview(festivalId, loginId, requestDto);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                         .body(new ApiRes<>(201, "리뷰 작성이 완료 되었습니다.", response));
@@ -61,9 +64,12 @@ public class ReviewController {
     @Operation(summary = "축제 리뷰 수정", description = "본인이 작성한 리뷰를 수정합니다.")
     public ResponseEntity<ApiRes<ReviewUpdateResponseDto>> updateReview(
             @PathVariable Long reviewId,
-            @Valid @RequestBody ReviewUpdateRequestDto requestDto
+            @Valid @RequestBody ReviewUpdateRequestDto requestDto,
+            Authentication authentication
     ) {
-        ReviewUpdateResponseDto response = reviewService.updateReview(reviewId, TEST_MEMBER_ID, requestDto);
+        String loginId = authentication.getName();
+
+        ReviewUpdateResponseDto response = reviewService.updateReview(reviewId, loginId, requestDto);
 
         return ResponseEntity.ok(
                 new ApiRes<>(200, "리뷰가 성공적으로 수정되었습니다.", response)
@@ -74,9 +80,12 @@ public class ReviewController {
     @DeleteMapping("/reviews/{reviewId}")
     @Operation(summary = "축제 리뷰 삭제", description = "본인이 작성한 리뷰를 삭제합니다.")
     public ResponseEntity<ApiRes<ReviewDeleteResponseDto>> deleteReview(
-            @PathVariable Long reviewId
+            @PathVariable Long reviewId,
+            Authentication authentication
     ) {
-        ReviewDeleteResponseDto response = reviewService.deleteReview(reviewId, TEST_MEMBER_ID);
+        String loginId = authentication.getName();
+
+        ReviewDeleteResponseDto response = reviewService.deleteReview(reviewId, loginId);
 
         return ResponseEntity.ok(
                 new ApiRes<>(200, "리뷰 삭제가 완료되었습니다.", response)
