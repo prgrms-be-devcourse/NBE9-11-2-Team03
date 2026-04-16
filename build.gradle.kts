@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.testImplementation
+
 plugins {
     java
     id("org.springframework.boot") version "3.5.13"
@@ -49,6 +51,10 @@ dependencies {
     annotationProcessor("jakarta.annotation:jakarta.annotation-api")
     annotationProcessor("jakarta.persistence:jakarta.persistence-api")
     implementation("org.jsoup:jsoup:1.17.2") //DB 정제용 의존성추가
+
+
+    testImplementation("org.springframework.security:spring-security-test")
+
 }
 
 tasks.withType<Test> {
