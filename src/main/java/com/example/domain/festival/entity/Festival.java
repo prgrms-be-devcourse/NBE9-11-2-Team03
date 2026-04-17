@@ -150,7 +150,15 @@ public class Festival extends BaseEntity {
         this.contactNumber = contactNumber;
     }
 
-    public void addViewCount() {
-        this.viewCount++;
+    //축제 찜 수 1 증가
+    public void increaseBookmarkCount() {
+        this.bookMarkCount++;
+    }
+
+    // 축제 찜 수 1 감소
+    public void decreaseBookmarkCount() {
+        if (this.bookMarkCount > 0) {
+            this.bookMarkCount--;
+        }
     }
 }
