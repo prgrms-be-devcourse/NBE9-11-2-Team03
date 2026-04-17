@@ -16,6 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -35,6 +36,7 @@ public class FestivalRepositoryImplTest {
                 .overview("서울 벚꽃축제 개요입니다.")
                 .mapX(126.9780)
                 .mapY(37.5665)
+                .lDongRegnCd("11")
                 .title("진행중인 서울 벚꽃축제")
                 .address("서울 영등포구")
                 .status(FestivalStatus.ONGOING)
@@ -51,6 +53,7 @@ public class FestivalRepositoryImplTest {
                 .overview("경기 불꽃축제 개요입니다.")
                 .mapX(127.0)
                 .mapY(37.0)
+                .lDongRegnCd("41")
                 .title("예정된 경기 불꽃축제")
                 .address("경기 가평군")
                 .status(FestivalStatus.UPCOMING)
@@ -66,6 +69,7 @@ public class FestivalRepositoryImplTest {
                 .overview("부산 바다축제 개요입니다.")
                 .mapX(129.0)
                 .mapY(35.0)
+                .lDongRegnCd("26")
                 .title("종료된 부산 바다축제")
                 .address("부산 해운대구")
                 .status(FestivalStatus.ENDED)
@@ -81,6 +85,7 @@ public class FestivalRepositoryImplTest {
                 .overview("제주 감귤축제 개요입니다.")
                 .mapX(126.5)
                 .mapY(33.4)
+                .lDongRegnCd("50")
                 .title("진행중인 제주 감귤축제")
                 .address("제주 서귀포시")
                 .status(FestivalStatus.ONGOING)
@@ -96,6 +101,7 @@ public class FestivalRepositoryImplTest {
                 .overview("강릉 커피축제 개요입니다.")
                 .mapX(128.876)
                 .mapY(37.751)
+                .lDongRegnCd("51")
                 .title("종료된 강릉 커피축제")
                 .address("강원도 강릉시")
                 .status(FestivalStatus.ENDED)
@@ -110,7 +116,7 @@ public class FestivalRepositoryImplTest {
     @Test
     @DisplayName("1. 글로벌 기본 정렬 룰 테스트 (조건 없을 때)")
     void defaultSortTest() {
-        FestivalSearchDto condition = new FestivalSearchDto(null, null, null, null);
+        FestivalSearchDto condition = new FestivalSearchDto(null, null, null, null, null, null, null);
         PageRequest pageRequest = PageRequest.of(0, 10);
 
         Page<Festival> result = festivalRepository.searchFestivals(condition, pageRequest);
@@ -133,7 +139,7 @@ public class FestivalRepositoryImplTest {
     @DisplayName("2. 지역 및 키워드 필터링 테스트")
     void searchFilterTest() {
         // given
-        FestivalSearchDto condition = new FestivalSearchDto("서울", null, null, "벚꽃");
+        FestivalSearchDto condition = new FestivalSearchDto("11", null, null, "벚꽃", null, null,null);
         PageRequest pageRequest = PageRequest.of(0, 10);
 
         // when
@@ -148,7 +154,7 @@ public class FestivalRepositoryImplTest {
     @DisplayName("3. 다중 조건 정렬 테스트 (조회순 내림차순)")
     void customSortTest() {
         // given
-        FestivalSearchDto condition = new FestivalSearchDto(null, null, null, null);
+        FestivalSearchDto condition = new FestivalSearchDto(null, null, null, null, null, null,null);
         // 조회수(viewCount) 내림차순 정렬 추가
         PageRequest pageRequest = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "viewCount"));
 
@@ -171,7 +177,7 @@ public class FestivalRepositoryImplTest {
         // given
         // 현재 달을 기준으로 세팅 (setUp 데이터들이 현재 날짜 기준이므로)
         int currentMonth = LocalDateTime.now().getMonthValue();
-        FestivalSearchDto condition = new FestivalSearchDto(null, null, currentMonth, null);
+        FestivalSearchDto condition = new FestivalSearchDto(null, null, currentMonth, null, null, null,null);
         PageRequest pageRequest = PageRequest.of(0, 10);
 
         // when
@@ -187,7 +193,7 @@ public class FestivalRepositoryImplTest {
     @DisplayName("5. 상태(Status) 단일 필터링 및 ENDED 기본 정렬 테스트")
     void statusFilterAndEndedSortTest() {
         // given: 상태를 ENDED(종료)로만 검색
-        FestivalSearchDto condition = new FestivalSearchDto(null, FestivalStatus.ENDED, null, null);
+        FestivalSearchDto condition = new FestivalSearchDto(null, FestivalStatus.ENDED, null, null, null, null,null);
         PageRequest pageRequest = PageRequest.of(0, 10);
 
         // when
@@ -203,11 +209,11 @@ public class FestivalRepositoryImplTest {
     }
 
     @Test
-    @DisplayName("6. 찜순(bookmarkCount) 다중 조건 정렬 테스트")
-    void bookmarkSortTest() {
+    @DisplayName("6. 찜순(bookMarkCount) 다중 조건 정렬 테스트")
+    void bookMarkSortTest() {
         // given: 조건 없이 찜순 내림차순 정렬 요청
-        FestivalSearchDto condition = new FestivalSearchDto(null, null, null, null);
-        PageRequest pageRequest = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "bookmarkCount"));
+        FestivalSearchDto condition = new FestivalSearchDto(null, null, null, null, null, null,null);
+        PageRequest pageRequest = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "bookMarkCount"));
 
         // when
         Page<Festival> result = festivalRepository.searchFestivals(condition, pageRequest);
@@ -229,7 +235,7 @@ public class FestivalRepositoryImplTest {
     @DisplayName("7. 검색 결과가 전혀 없는 경우 (Empty) 테스트")
     void emptyResultTest() {
         // given: 절대 있을 수 없는 요상한 조건으로 검색
-        FestivalSearchDto condition = new FestivalSearchDto("하와이", null, null, "외계인");
+        FestivalSearchDto condition = new FestivalSearchDto("하와이", null, null, "외계인", null, null,null);
         PageRequest pageRequest = PageRequest.of(0, 10);
 
         // when
@@ -239,5 +245,48 @@ public class FestivalRepositoryImplTest {
         // 에러가 터지지 않고 0건짜리 빈 페이지를 정상적으로 리턴해야 함
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getTotalElements()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("8. 내 주변 축제 검색 (마커용) - 반경 10km 좁은 검색")
+    void nearbySearch_10km_Test() {
+        // given: 내 위치를 서울 한복판(경도 126.9780, 위도 37.5665)으로 설정
+        Double myMapX = 126.9780;
+        Double myMapY = 37.5665;
+        Double radiusKm = 10.0; // 반경 10km
+
+        // 기존 4개 조건은 null로 두고, 방금 추가한 좌표 3개만 세팅
+        FestivalSearchDto condition = new FestivalSearchDto(null, null, null, null, myMapX, myMapY, radiusKm);
+
+        // when: 마커 전용 메서드(findNearbyFestivals) 호출
+        List<Festival> result = festivalRepository.findNearbyFestivals(condition);
+
+        // then
+        // 서울 벚꽃축제만 10km 안에 들어오고, 나머지는 컷(Cut)
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTitle()).isEqualTo("진행중인 서울 벚꽃축제");
+    }
+
+    @Test
+    @DisplayName("9. 내 주변 축제 검색 (마커용) - 반경 100km 넓은 검색")
+    void nearbySearch_100km_Test() {
+        // given: 똑같이 서울 한복판에서, 이번엔 반경을 100km로 확 넓힘
+        Double myMapX = 126.9780;
+        Double myMapY = 37.5665;
+        Double radiusKm = 100.0; // 반경 100km
+
+        FestivalSearchDto condition = new FestivalSearchDto(null, null, null, null, myMapX, myMapY, radiusKm);
+
+        // when
+        List<Festival> result = festivalRepository.findNearbyFestivals(condition);
+
+        // then
+        // 100km로 넓히면 서울(동일 위치)과 경기(약 60km 거리) 2개가 잡혀야 함!
+        // 강릉, 부산, 제주는 여전히 100km 밖이므로 안 나와야 함
+        assertThat(result).hasSize(2);
+
+        // 정렬 1순위(ONGOING)인 서울이 먼저 나오고, 2순위(UPCOMING)인 경기가 뒤에 나오는지도 덤으로 확인
+        assertThat(result.get(0).getTitle()).isEqualTo("진행중인 서울 벚꽃축제");
+        assertThat(result.get(1).getTitle()).isEqualTo("예정된 경기 불꽃축제");
     }
 }

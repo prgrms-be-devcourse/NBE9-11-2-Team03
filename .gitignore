@@ -42,6 +42,3 @@ db_dev.trace.db
 
 ### Querydsl ###
 /src/main/generated/
-.env
-# Docker MySQL data
-mysql_data/
