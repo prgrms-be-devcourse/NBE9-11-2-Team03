@@ -52,6 +52,7 @@ public class MyPageService {
         return MyReviewPageRes.from(reviews);
     }
 
+    // loginId로 자신이 찜한 축제를 찾아 반환하는 메서드
     public MyBookMarkPageRes getMyBookMark(String loginId, Pageable pageable) {
         Member member = memberRepository.findByLoginId(loginId).orElseThrow(()->new CustomNotFoundException("로그인한 회원 정보를 찾을 수 없습니다."));
         Page<FestivalBookmark> bookmarkPage = festivalBookmarkRepository.findByMemberId(member.getId(),pageable);
