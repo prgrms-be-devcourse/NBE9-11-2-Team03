@@ -71,7 +71,7 @@ public class FestivalControllerTest {
         result.andExpect(status().isOk())
                 .andDo(print())
                 // RsData의 공통 필드 검사
-                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.status").value("200"))
                 .andExpect(jsonPath("$.message").value("축제 상세 조회 성공"))
                 // data 하위의 실제 축제 정보 검사
                 .andExpect(jsonPath("$.data.id").value(targetId))

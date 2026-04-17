@@ -1,14 +1,14 @@
 package com.example.global.rsData;
 
 public record RsData<T>(
-        String resultCode,
+        String status,
         String message,
         T data
 ) {
 
     //data 없이 사용하는 생성자
-    public RsData(String resultCode, String message) {
-        this(resultCode, message, null);
+    public RsData(String status, String message) {
+        this(status, message, null);
     }
 
     //성공 응답 (data 포함)
