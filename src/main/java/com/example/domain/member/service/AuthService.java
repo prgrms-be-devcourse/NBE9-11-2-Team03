@@ -6,16 +6,15 @@ import com.example.domain.member.dto.request.TokenReissueRequest;
 import com.example.domain.member.dto.response.LoginResponse;
 import com.example.domain.member.dto.response.SignupResponse;
 import com.example.domain.member.dto.response.TokenReissueResponse;
+import com.example.domain.member.dto.response.WithdrawRes;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.entity.RefreshToken;
 import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.member.repository.RefreshTokenRepository;
-import com.example.global.exception.CustomNotFoundException;
-import com.example.global.exception.DuplicateResourceException;
-import com.example.global.exception.ForbiddenException;
-import com.example.global.exception.UnauthorizedException;
+import com.example.global.exception.*;
 import com.example.global.jwt.JwtUtil;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -180,5 +179,19 @@ public class AuthService {
             refreshTokenRepository.delete(refreshToken);
             throw new UnauthorizedException("만료된 refresh token입니다.");
         }
+    }
+
+    //회원 스스로 탈퇴하는 메서드
+    @Transactional
+    public WithdrawRes selfWithdraw(String loginId,String password) {
+        Member member = memberRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new CustomNotFoundException("회원을 찾을 수 없습니다."));
+        if (member.getStatus() == MemberStatus.WITHDRAWN) {
+            throw new BadRequestException("이미 탈퇴 처리된 계정입니다.");
+        }
+        validatePassword(password,member.getPassword());
+        member.withdraw();
+        refreshTokenRepository.deleteByMemberId(member.getId());
+        return new WithdrawRes(member.getId(),member.getStatus());
     }
 }
