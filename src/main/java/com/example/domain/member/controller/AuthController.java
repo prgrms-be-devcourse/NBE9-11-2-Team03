@@ -2,8 +2,10 @@ package com.example.domain.member.controller;
 
 import com.example.domain.member.dto.request.LoginRequest;
 import com.example.domain.member.dto.request.SignupRequest;
+import com.example.domain.member.dto.request.TokenReissueRequest;
 import com.example.domain.member.dto.response.LoginResponse;
 import com.example.domain.member.dto.response.SignupResponse;
+import com.example.domain.member.dto.response.TokenReissueResponse;
 import com.example.domain.member.service.AuthService;
 import com.example.global.response.ApiRes;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -45,7 +48,25 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request
     ) {
         LoginResponse response = authService.login(request);
-
         return ResponseEntity.ok(new ApiRes<>(200, "로그인 성공", response));
+    }
+
+    // refresh token으로 새 access token과 refresh token을 다시 발급합니다.
+    @PostMapping("/reissue")
+    @Operation(summary = "토큰 재발급", description = "refresh token을 검증한 뒤 새 토큰을 발급합니다.")
+    public ResponseEntity<ApiRes<TokenReissueResponse>> reissue(
+            @Valid @RequestBody TokenReissueRequest request
+    ) {
+        TokenReissueResponse response = authService.reissue(request);
+        return ResponseEntity.ok(new ApiRes<>(200, "토큰 재발급 성공", response));
+    }
+
+    // 로그아웃 요청이 오면 현재 로그인한 회원의 refresh token을 삭제함.
+    @PostMapping("/logout")
+    @Operation(summary = "로그아웃", description = "현재 로그인한 회원의 refresh token을 삭제합니다.")
+    public ResponseEntity<ApiRes<Void>> logout(Authentication authentication) {
+        authService.logout(authentication.getName());
+
+        return ResponseEntity.ok(new ApiRes<>(200, "로그아웃 성공", null));
     }
 }
