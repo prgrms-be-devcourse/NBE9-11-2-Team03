@@ -101,6 +101,12 @@ public class MyPageController {
         );
     }
 
+    /**
+     *
+     * @param req (비밀번호와, 비밀번호 확인을 받습니다.)
+     * @param authentication
+     * @return memberId와상태를 반환합니다. 리프레시토큰또한 제거합니다.
+     */
     @DeleteMapping("/withdraw")
     @Operation(summary = "회원 탈퇴 로직", description = "회원은 자신의 상태를 withdraw로변경(탈퇴)를 진행할 수 있다.")
     public ResponseEntity<RsData<WithdrawRes>> selfWithdraw(
