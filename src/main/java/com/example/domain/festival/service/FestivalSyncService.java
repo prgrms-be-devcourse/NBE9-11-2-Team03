@@ -141,34 +141,6 @@ public class FestivalSyncService {
         festivalSyncEventPublisher.publishSyncCompleted(changedContentIds);
     }
 
-    //####################삭제 고려#########이제 배열 값 처리x => 이벤트 처리라?##
-    //상세 보강 대상 contentId 수집 (목록 변경 + 상세 미완료)
-    @Transactional(readOnly = true)
-    public List<String> collectDetailEnrichTargetContentIds(List<String> changedContentIds) {
-        Set<String> targetContentIds = new LinkedHashSet<>(changedContentIds);
-
-        //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
-        long start = System.currentTimeMillis();
-
-        List<Festival> festivals = festivalRepository.findAll();
-
-        //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
-        long end = System.currentTimeMillis();
-        System.out.println("findAll 조회 시간: " + (end - start) + "ms");
-
-        for (Festival festival : festivals) {
-            if (festivalApiConverter.isDetailIncomplete(festival)) {
-                targetContentIds.add(festival.getContentId());
-            }
-        }
-
-        //상세 Default 확인용////
-        System.out.println("상세 보강 대상 수: " + targetContentIds.size());
-        System.out.println("상세 보강 대상 contentIds: " + targetContentIds);
-
-        return new ArrayList<>(targetContentIds);
-    }
-
 
     //상세 API 기반 상세 정보 보강 (변경된 contentId 목록만 변경 대상 ex. 초기적재 or 실제 변경)
     public FestivalSyncResult enrichFestivalDetailsByContentIds(List<String> contentIds) {
