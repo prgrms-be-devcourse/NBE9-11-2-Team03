@@ -199,7 +199,6 @@ public class ReviewService {
         return AdminReviewReportPageRes.from(reviews);
     }
 
-    // 관리자가 특정 리뷰에 접수된 신고 사유 목록을 확인합니다.
     //리뷰를 검토하여 블라인드처리, 신고횟수 초기화하는 함수
     @Transactional
     public AdminReviewBlindRes processReviewAction(Long reviewId, String action) {
@@ -228,13 +227,6 @@ public class ReviewService {
                 review.getStatus(),
                 review.getReportCount()
         );
-    }
-    //logind를 토대로 내가 쓴 리뷰를 찾고, 그리뷰를 페이징하여 넘겨주는 메서드
-    public MyReviewPageRes getMyReviews(String loginid, Pageable pageable) {
-        Member member = memberRepository.findByLoginId(loginid).orElseThrow(()->new CustomNotFoundException("로그인한 회원 정보를 찾을 수 없습니다."));
-        Page<Review> reviews = reviewRepository.findByMemberIdAndStatus(member.getId(),ReviewStatus.ACTIVE,pageable);
-       return MyReviewPageRes.from(reviews);
-
     }
 }
 

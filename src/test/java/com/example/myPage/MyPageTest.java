@@ -5,16 +5,20 @@ import com.example.domain.bookmark.repository.FestivalBookmarkRepository;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
 import com.example.domain.member.entity.Member;
+import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.review.entity.Review;
 import com.example.domain.review.repository.ReviewRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -45,6 +51,8 @@ public class MyPageTest {
     ReviewRepository reviewRepository;
     @Autowired
     FestivalBookmarkRepository festivalBookmarkRepository;
+    @Autowired
+    PasswordEncoder passwordEncoder;
 
 
 
@@ -115,6 +123,79 @@ public class MyPageTest {
                 .andExpect(jsonPath("$.data.content[1].content").value("첫 번째 리뷰"))
                 .andExpect(jsonPath("$.data.page").value(0))
                 .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andDo(print());
+    }
+
+    @Test
+    @DisplayName("회원 탈퇴 성공 - 비밀번호가 일치하면 상태가 WITHDRAWN으로 변경된다.")
+    @WithMockUser(username = "withdrawUser") // 인증 컨텍스트에 담길 이름
+    void withdrawSuccessTest() throws Exception {
+        // 1. Given: 실제 DB에 테스트용 회원 저장
+        String loginId = "withdrawUser";
+        String rawPassword = "password123";
+
+        // PasswordEncoder를 주입받아 암호화해서 저장해야 서비스의 matches를 통과합니다.
+        Member member = new Member(
+                loginId,
+                passwordEncoder.encode(rawPassword), // 암호화 필수
+                "탈퇴전닉네임",
+                "withdraw@test.com",
+                "길동",
+                0
+        );
+        memberRepository.save(member);
+
+        // 2. When: 탈퇴 API 호출
+        String requestBody = String.format("""
+            {
+                "password": "%s",
+                "passwordConfirm": "%s"
+            }
+            """, rawPassword, rawPassword);
+
+        mockMvc.perform(delete("/api/users/me/withdraw") // 경로 확인: /api/v1/mypage/me/withdraw
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("탈퇴처리가 성공적으로 수행되었습니다."))
+                .andDo(print());
+
+        // 3. Then: 실제 DB 상태 검증
+        // 영속성 컨텍스트를 갱신하기 위해 다시 조회합니다.
+        Member withdrawnMember = memberRepository.findByLoginId(loginId).orElseThrow();
+        assertThat(withdrawnMember.getStatus()).isEqualTo(MemberStatus.WITHDRAWN);
+        assertThat(withdrawnMember.getNickname()).isEqualTo("탈퇴한회원_%d".formatted(member.getId()));
+    }
+
+    @Test
+    @DisplayName("회원 탈퇴 실패 - 비밀번호가 일치하지 않으면 400 에러를 반환한다.")
+    @WithMockUser(username = "failUser")
+    void withdrawFailTest() throws Exception {
+        // 1. Given: 회원 저장
+        Member member = new Member(
+                "failUser",
+                passwordEncoder.encode("correctPassword"),
+                "실패테스트",
+                "fail@test.com",
+                "길동",
+                0
+        );
+        memberRepository.save(member);
+
+        // 틀린 비밀번호 요청
+        String requestBody = """
+            {
+                "password": "wrongPassword",
+                "passwordConfirm": "wrongPassword"
+            }
+            """;
+
+        // 2. When & Then
+        mockMvc.perform(delete("/api/users/me/withdraw")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("비밀번호가 일치하지 않습니다."))
                 .andDo(print());
     }
 }
