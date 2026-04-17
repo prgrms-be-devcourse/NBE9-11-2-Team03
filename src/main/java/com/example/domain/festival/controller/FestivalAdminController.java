@@ -50,7 +50,7 @@ public class FestivalAdminController {
     //축제 목록 데이터를 수동 동기화한다. (공공 API 목록 조회 -> contentId 기준으로 insert / 변경사항 확인 후, update 수행)
     //목록만 동기화하는 보조/점검용
     //디버깅용(목록 동기화 OR 상세 보강 문제인지 확인)
-    @PostMapping("/sync")
+    @PostMapping("/sync-list")
     public RsData<FestivalSyncResponseDto> syncFestivals(
             @RequestParam(defaultValue = "1") int pageNo,
             @RequestParam(defaultValue = "10") int numOfRows,
@@ -69,6 +69,41 @@ public class FestivalAdminController {
         return RsData.success("축제 목록 동기화가 완료되었습니다.", response);
     }
 
+    //축제 상세정보 전체를 보강한다. (외부 API 호출 제한으로 인해, 상세정보가 보강이 되지 않았을 때, 축제 상세 정보 재동기화 목적)
+    @PostMapping("/enrich-all")
+    public RsData<FestivalSyncResponseDto> enrichAllFestivalDetails() {
+        List<String> targetContentIds =
+                festivalSyncService.collectDetailEnrichTargetContentIds(List.of());
+
+        if (targetContentIds.isEmpty()) {
+            return RsData.success(
+                    "상세 보강 대상 축제가 없습니다.",
+                    new FestivalSyncResponseDto(0, 0, 0, 0)
+            );
+        }
+
+        FestivalSyncResult result =
+                festivalSyncService.enrichFestivalDetailsByContentIds(targetContentIds);
+
+        FestivalSyncResponseDto response = new FestivalSyncResponseDto(
+                result.getTotalCount(),
+                result.getCreatedCount(),
+                result.getUpdatedCount(),
+                result.getFailedCount()
+        );
+
+        String message;
+
+        if (result.getUpdatedCount() == 0 && result.getFailedCount() > 0) {
+            message = "축제 상세 보강이 실패했습니다. 외부 API 제한 또는 오류로 인해 처리되지 않았습니다.";
+        } else if (result.getFailedCount() > 0) {
+            message = "축제 상세 보강이 부분 완료되었습니다. 일부 대상은 외부 API 제한 또는 오류로 처리되지 않았습니다.";
+        } else {
+            message = "축제 상세 보강이 완료되었습니다.";
+        }
+
+        return RsData.success(message, response);
+    }
 
     //특정 축제 1건만 상세 보강한다.(특정 데이터 재동기화 , 디버깅, 전체 보강 전 검증 목적)
     @PostMapping("/{contentId}/enrich")
