@@ -92,11 +92,12 @@ public class AuthService {
     }
 
     // 4) 로그아웃
-    // 로그아웃하면 DB에 저장된 refresh token을 삭제해서 재발급을 막습니다.
+    // 로그아웃하면 refresh token row는 남기고 token 값만 비워 재발급을 막습니다.
     @Transactional
     public void logout(String loginId) {
         Member member = findMemberByLoginId(loginId);
-        refreshTokenRepository.deleteByMemberId(member.getId());
+        refreshTokenRepository.findByMemberId(member.getId())
+                .ifPresent(RefreshToken::logout);
     }
 
     // 5) 회원가입 시 아이디, 이메일, 닉네임 중복 여부를 검사

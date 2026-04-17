@@ -24,7 +24,7 @@ public class RefreshToken extends BaseEntity {
     @JoinColumn(name = "member_id", nullable = false, unique = true)
     private Member member;
 
-    @Column(nullable = false, unique = true, length = 500)
+    @Column(nullable = true, unique = true, length = 500)
     private String token;
 
     @Column(name = "expires_at", nullable = false)
@@ -44,6 +44,11 @@ public class RefreshToken extends BaseEntity {
     public void update(String token, LocalDateTime expiresAt) {
         this.token = token;
         this.expiresAt = expiresAt;
+    }
+
+    // 로그아웃하면 기록은 남기고 실제 refresh token 값만 비움.
+    public void logout() {
+        this.token = null;
     }
 
     public boolean isExpired() {
