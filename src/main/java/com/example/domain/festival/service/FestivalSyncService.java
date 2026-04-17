@@ -12,6 +12,8 @@ import com.example.domain.festival.repository.FestivalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.util.*;
 import java.util.function.Function;
@@ -57,6 +59,7 @@ public class FestivalSyncService {
 
         int createdCount = 0;
         int updatedCount = 0;
+        int failedCount = 0;
         List<String> changedContentIds = new ArrayList<>();
 
         //성능TEST코드: DB 처리 시간 시간 (추후 삭제 가능)
@@ -81,23 +84,31 @@ public class FestivalSyncService {
 
         //비교 저장 로직
         for (FestivalApiItem item : items) {
-            String contentId = item.getContentid();
+            try {
+                String contentId = item.getContentid();
 
-            // 미리 조회한 Map에서 기존 데이터를 꺼내서 사용
-            Festival existingFestival = existingFestivalMap.get(contentId);
+                // 미리 조회한 Map에서 기존 데이터를 꺼내서 사용
+                Festival existingFestival = existingFestivalMap.get(contentId);
 
-            // DB에 없는 신규 축제 → insert
-            if (existingFestival == null) {
-                Festival newFestival = festivalApiConverter.toEntityFromListItem(item);
-                festivalRepository.save(newFestival);
-                createdCount++;
-                changedContentIds.add(contentId);
-            }
-            // DB에 존재하고 목록 필드가 변경된 경우 → update
-            else if (festivalApiConverter.hasListChanges(existingFestival, item)) {
-                festivalApiConverter.updateFromListItem(existingFestival, item);
-                updatedCount++;
-                changedContentIds.add(contentId);
+                // DB에 없는 신규 축제 → insert
+                if (existingFestival == null) {
+                    Festival newFestival = festivalApiConverter.toEntityFromListItem(item);
+                    festivalRepository.save(newFestival);
+                    createdCount++;
+                    changedContentIds.add(contentId);
+                }
+
+                // DB에 존재하고 목록 필드가 변경된 경우 → update
+                else if (festivalApiConverter.hasListChanges(existingFestival, item)) {
+                    festivalApiConverter.updateFromListItem(existingFestival, item);
+                    updatedCount++;
+                    changedContentIds.add(contentId);
+                }
+            } catch (Exception e) {
+                // item 단위 실패 처리 (전체 중단 방지)
+                failedCount++;
+                System.out.println("목록 동기화 실패 contentId=" + item.getContentid()
+                        + ", message=" + e.getMessage());
             }
         }
 
@@ -105,11 +116,19 @@ public class FestivalSyncService {
         long dbEnd = System.currentTimeMillis();
         long totalEnd = System.currentTimeMillis();
 
-        System.out.println("목록 API 시간: " + (apiEnd - apiStart) + "ms");
-        System.out.println("DB 처리 시간: " + (dbEnd - dbStart) + "ms");
-        System.out.println("총 시간: " + (totalEnd - totalStart) + "ms");
+        // 목록 동기화 로그 출력
+        System.out.println("[FestivalSync - List]");
+        System.out.println("목록 조회 건수: " + items.size());
+        System.out.println("목록 생성 건수: " + createdCount);
+        System.out.println("목록 수정 건수: " + updatedCount);
+        System.out.println("목록 실패 건수: " + failedCount);
+        System.out.println("목록 변경 건수: " + changedContentIds.size());
 
-        return new FestivalSyncResult(items.size(), createdCount, updatedCount, 0, changedContentIds);
+        System.out.println("목록 API 소요시간: " + (apiEnd - apiStart) + "ms");
+        System.out.println("목록 DB 소요시간: " + (dbEnd - dbStart) + "ms");
+        System.out.println("목록 총 소요시간: " + (totalEnd - totalStart) + "ms");
+
+        return new FestivalSyncResult(items.size(), createdCount, updatedCount, failedCount, changedContentIds);
     }
 
 
@@ -160,6 +179,8 @@ public class FestivalSyncService {
         long totalStart = System.currentTimeMillis();
         //성능TEST코드: 상세 API 호출 횟수 (추후 삭제 가능)
         int apiCallCount = 0;
+        //로그 관리용 변수: 중단 사유
+        String stopReason = null;
 
         for (String contentId : contentIds) {
             try {
@@ -217,20 +238,58 @@ public class FestivalSyncService {
                     }
                 }
 
-            } catch (Exception e) {
-                System.out.println("변경 축제 상세 보강 중 실패 contentId=" + contentId
-                        + ", message=" + e.getMessage());
+            } catch (HttpClientErrorException.TooManyRequests e) {
+                // 429 발생 시 전체 상세 보강 즉시 중단 (quota 보호 핵심 로직)
                 failedCount++;
+                stopReason = "429 (quota 초과)";
+                System.out.println("429 발생 → 상세 보강 전체 중단 contentId=" + contentId);
+                break;
+
+            } catch (HttpServerErrorException e) {
+                // 5xx 오류 → 해당 contentId만 실패 처리 후 계속 진행
+                failedCount++;
+                if (stopReason == null) {
+                    stopReason = "5xx 서버 오류 (" + e.getStatusCode() + ")";
+                }
+                System.out.println("외부 API 서버 오류 → 상세 보강 실패 contentId=" + contentId
+                        + ", status=" + e.getStatusCode());
+
+            } catch (Exception e) {
+                // 기타 예외 → 해당 건만 실패 처리
+                failedCount++;
+                System.out.println("상세 보강 실패 contentId=" + contentId
+                        + ", message=" + e.getMessage());
             }
         }
 
-        //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
-        long totalEnd = System.currentTimeMillis();
-        System.out.println("상세 API 호출 횟수: " + apiCallCount);
-        System.out.println("상세 전체 시간: " + (totalEnd - totalStart) + "ms");
+            //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+            long totalEnd = System.currentTimeMillis();
 
-        return new FestivalSyncResult(contentIds.size(), 0, updatedCount, failedCount, contentIds);
-    }
+            //로그 변수
+            int totalTargetCount = contentIds.size();   // 전체 대상
+            int attemptedCount = apiCallCount;  // 실제 호출
+            int skippedCount = totalTargetCount - attemptedCount;   // 미시도
+            int successCount = updatedCount;    // 성공
+            int failureCount = failedCount; // 실패 (시도했지만 실패한 건)
+            int unprocessedCount = failureCount + skippedCount; // 미처리 (실패 + 미시도)
+            String finalStopReason = (stopReason == null) ? "없음 (정상 처리 또는 일부 실패)" : stopReason; // 중단 사유 (없으면 정상 종료)
+
+            // 상세 정보 동기화 로그 출력
+            System.out.println("[FestivalSync - Detail]");
+            System.out.println("상세 보강 대상 건수: " + totalTargetCount);
+            System.out.println("상세 보강 성공 건수: " + successCount);
+            System.out.println("상세 보강 실패 건수: " + failureCount);
+            System.out.println("상세 보강 미처리 건수: " + unprocessedCount
+                + " (실패 " + failureCount + " + 미시도 " + skippedCount + ")");
+            System.out.println("상세 API 호출 시도 횟수: " + attemptedCount);
+            System.out.println("상세 API 미시도 횟수: " + skippedCount);
+            System.out.println("중단 사유: " + finalStopReason);
+            System.out.println("상세 보강 총 소요시간: " + (totalEnd - totalStart) + "ms");
+
+            return new FestivalSyncResult(contentIds.size(), 0, updatedCount, failedCount, contentIds);
+        }
+
+
 
     //상세 API 기반 상세 정보 보강 (특정 축제 1건에 대해한 상세 정보를 보강한다)
     //특정 데이터에 문제가 발생했을 때 부분 재동기화 용도로 활용, API 호출을 1건만 수행하므로 rate limit(429) 부담이 적음

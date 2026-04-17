@@ -192,18 +192,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handleTooManyRequests(HttpClientErrorException.TooManyRequests e) {
         return ResponseEntity
                 .status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(new RsData<>("429", "외부 API 호출 한도를 초과했습니다.", null));
+                .body(new RsData<>("429", "외부 API 호출 한도를 초과로 인해 동기화가 중단되었습니다.", null));
     }
 
     //502 Bad Gateway (외부 API 서버 오류)
     @ExceptionHandler(HttpServerErrorException.class)
-    public ResponseEntity<RsData<Void>> handleHttpServerErrorException(
-            HttpServerErrorException e
-    ) {
+    public ResponseEntity<RsData<Void>> handleHttpServerErrorException(HttpServerErrorException e) {
+        int statusCode = e.getStatusCode().value();
+
+        if (statusCode == 502 || statusCode == 503 || statusCode == 504) {
+            return ResponseEntity
+                    .status(e.getStatusCode())
+                    .body(new RsData<>(String.valueOf(statusCode), "외부 API 서버 응답이 불안정하여 동기화에 실패했습니다.", null));
+        }
+
         return ResponseEntity
                 .status(e.getStatusCode())
                 .body(new RsData<>(
-                        String.valueOf(e.getStatusCode().value()),
+                        String.valueOf(statusCode),
                         "외부 API 서버 오류가 발생했습니다.",
                         null
                 ));

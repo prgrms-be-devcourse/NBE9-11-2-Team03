@@ -11,6 +11,10 @@ import com.example.domain.festival.repository.FestivalRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
@@ -72,6 +76,7 @@ class FestivalSyncServiceTest {
             assertThat(result.getTotalCount()).isEqualTo(1);
             assertThat(result.getCreatedCount()).isEqualTo(1);
             assertThat(result.getUpdatedCount()).isEqualTo(0);
+            assertThat(result.getFailedCount()).isEqualTo(0);
 
             verify(festivalRepository, times(1)).save(newFestival);
             verify(festivalApiConverter, times(1)).toEntityFromListItem(item);
@@ -110,6 +115,7 @@ class FestivalSyncServiceTest {
             assertThat(result.getTotalCount()).isEqualTo(1);
             assertThat(result.getCreatedCount()).isEqualTo(0);
             assertThat(result.getUpdatedCount()).isEqualTo(1);
+            assertThat(result.getFailedCount()).isEqualTo(0);
 
             verify(festivalApiConverter, times(1)).hasListChanges(existingFestival, item);
             verify(festivalApiConverter, times(1)).updateFromListItem(existingFestival, item);
@@ -149,10 +155,58 @@ class FestivalSyncServiceTest {
             assertThat(result.getTotalCount()).isEqualTo(1);
             assertThat(result.getCreatedCount()).isEqualTo(0);
             assertThat(result.getUpdatedCount()).isEqualTo(0);
+            assertThat(result.getFailedCount()).isEqualTo(0);
 
             verify(festivalApiConverter, times(1)).hasListChanges(existingFestival, item);
             verify(festivalApiConverter, never()).updateFromListItem(any(), any());
             verify(festivalRepository, never()).save(any(Festival.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("목록 동기화 예외 처리 테스트")
+    class SyncFestivalListFailureTest {
+
+        @Test
+        @DisplayName("목록 동기화 중 한 건이 실패해도 failedCount에 반영되고 나머지는 계속 처리된다")
+        void syncFestivalList_item_failure_test() throws Exception {
+            FestivalApiItem item1 = createApiItem("1001", "가야문화축제");
+            FestivalApiItem item2 = createApiItem("1002", "오류축제");
+
+            FestivalApiResponse response = createResponse(List.of(item1, item2));
+
+            Festival newFestival = Festival.builder()
+                    .contentId("1001")
+                    .title("가야문화축제")
+                    .overview("상세 설명 없음")
+                    .contactNumber("055-330-6840")
+                    .firstImageUrl("image1.jpg")
+                    .thumbnailUrl("image2.jpg")
+                    .address("경상남도 김해시 대성동")
+                    .homepageUrl("https://test.com")
+                    .startDate(LocalDateTime.of(2026, 4, 30, 0, 0))
+                    .endDate(LocalDateTime.of(2026, 5, 3, 23, 59, 59))
+                    .mapX(128.87)
+                    .mapY(35.23)
+                    .lDongRegnCd("48")
+                    .status(FestivalStatus.UPCOMING)
+                    .build();
+
+            when(festivalApiClient.fetchFestivalList(1, 10, "20260101")).thenReturn(response);
+            when(festivalRepository.findAllByContentIdIn(List.of("1001", "1002"))).thenReturn(List.of());
+            when(festivalApiConverter.toEntityFromListItem(item1)).thenReturn(newFestival);
+            when(festivalApiConverter.toEntityFromListItem(item2))
+                    .thenThrow(new RuntimeException("변환 실패"));
+
+            FestivalSyncResult result = festivalSyncService.syncFestivalList(1, 10, "20260101");
+
+            assertThat(result.getTotalCount()).isEqualTo(2);
+            assertThat(result.getCreatedCount()).isEqualTo(1);
+            assertThat(result.getUpdatedCount()).isEqualTo(0);
+            assertThat(result.getFailedCount()).isEqualTo(1);
+            assertThat(result.getChangedContentIds()).containsExactly("1001");
+
+            verify(festivalRepository, times(1)).save(newFestival);
         }
     }
 
@@ -213,6 +267,7 @@ class FestivalSyncServiceTest {
 
             when(festivalRepository.findByContentId("694576")).thenReturn(Optional.of(festival));
             when(festivalApiClient.fetchFestivalDetail("694576")).thenReturn(detailResponse);
+            when(festivalApiConverter.isDetailIncomplete(festival)).thenReturn(false);
             when(festivalApiConverter.hasDetailChanges(festival, detailItem)).thenReturn(true);
 
             FestivalSyncResult result =
@@ -225,6 +280,118 @@ class FestivalSyncServiceTest {
 
             verify(festivalApiConverter, times(1)).hasDetailChanges(festival, detailItem);
             verify(festivalApiConverter, times(1)).updateDetailFields(festival, detailItem);
+        }
+    }
+
+    @Nested
+    @DisplayName("상세 보강 예외 정책 테스트")
+    class EnrichFestivalDetailsFailureTest {
+
+        @Test
+        @DisplayName("상세 보강 중 429가 발생하면 즉시 중단한다")
+        void enrichFestivalDetailsByContentIds_429_break_test() {
+            Festival festival1 = Festival.builder()
+                    .contentId("1001")
+                    .title("축제1")
+                    .overview("기존 상세 설명")
+                    .address("서울")
+                    .startDate(LocalDateTime.now())
+                    .endDate(LocalDateTime.now().plusDays(1))
+                    .mapX(127.0)
+                    .mapY(37.0)
+                    .status(FestivalStatus.UPCOMING)
+                    .build();
+
+            Festival festival2 = Festival.builder()
+                    .contentId("1002")
+                    .title("축제2")
+                    .overview("기존 상세 설명")
+                    .address("부산")
+                    .startDate(LocalDateTime.now())
+                    .endDate(LocalDateTime.now().plusDays(1))
+                    .mapX(128.0)
+                    .mapY(35.0)
+                    .status(FestivalStatus.UPCOMING)
+                    .build();
+
+            when(festivalRepository.findByContentId("1001")).thenReturn(Optional.of(festival1));
+            when(festivalRepository.findByContentId("1002")).thenReturn(Optional.of(festival2));
+            when(festivalApiConverter.isDetailIncomplete(any(Festival.class))).thenReturn(false);
+
+            when(festivalApiClient.fetchFestivalDetail("1001"))
+                    .thenThrow(HttpClientErrorException.create(
+                            HttpStatus.TOO_MANY_REQUESTS,
+                            "Too Many Requests",
+                            HttpHeaders.EMPTY,
+                            new byte[0],
+                            null
+                    ));
+
+            FestivalSyncResult result =
+                    festivalSyncService.enrichFestivalDetailsByContentIds(List.of("1001", "1002"));
+
+            assertThat(result.getTotalCount()).isEqualTo(2);
+            assertThat(result.getUpdatedCount()).isEqualTo(0);
+            assertThat(result.getFailedCount()).isEqualTo(1);
+
+            verify(festivalApiClient, times(1)).fetchFestivalDetail("1001");
+            verify(festivalApiClient, never()).fetchFestivalDetail("1002");
+        }
+
+        @Test
+        @DisplayName("상세 보강 중 5xx가 발생하면 해당 건만 실패 처리하고 다음 건으로 진행한다")
+        void enrichFestivalDetailsByContentIds_5xx_continue_test() throws Exception {
+            Festival festival1 = Festival.builder()
+                    .contentId("1001")
+                    .title("축제1")
+                    .overview("기존 상세 설명")
+                    .address("서울")
+                    .startDate(LocalDateTime.now())
+                    .endDate(LocalDateTime.now().plusDays(1))
+                    .mapX(127.0)
+                    .mapY(37.0)
+                    .status(FestivalStatus.UPCOMING)
+                    .build();
+
+            Festival festival2 = Festival.builder()
+                    .contentId("1002")
+                    .title("축제2")
+                    .overview("기존 상세 설명")
+                    .address("부산")
+                    .startDate(LocalDateTime.now())
+                    .endDate(LocalDateTime.now().plusDays(1))
+                    .mapX(128.0)
+                    .mapY(35.0)
+                    .status(FestivalStatus.UPCOMING)
+                    .build();
+
+            FestivalApiItem detailItem = createApiItem("1002", "축제2");
+            setField(detailItem, "overview", "새 상세 설명");
+            setField(detailItem, "homepage", "https://test.com");
+
+            FestivalApiResponse detailResponse = createResponse(List.of(detailItem));
+
+            when(festivalRepository.findByContentId("1001")).thenReturn(Optional.of(festival1));
+            when(festivalRepository.findByContentId("1002")).thenReturn(Optional.of(festival2));
+            when(festivalApiConverter.isDetailIncomplete(any(Festival.class))).thenReturn(false);
+
+            when(festivalApiClient.fetchFestivalDetail("1001"))
+                    .thenThrow(new HttpServerErrorException(HttpStatus.BAD_GATEWAY));
+            when(festivalApiClient.fetchFestivalDetail("1002"))
+                    .thenReturn(detailResponse);
+
+            when(festivalApiConverter.hasDetailChanges(festival2, detailItem)).thenReturn(true);
+
+            FestivalSyncResult result =
+                    festivalSyncService.enrichFestivalDetailsByContentIds(List.of("1001", "1002"));
+
+            assertThat(result.getTotalCount()).isEqualTo(2);
+            assertThat(result.getUpdatedCount()).isEqualTo(1);
+            assertThat(result.getFailedCount()).isEqualTo(1);
+
+            verify(festivalApiClient, times(1)).fetchFestivalDetail("1001");
+            verify(festivalApiClient, times(1)).fetchFestivalDetail("1002");
+            verify(festivalApiConverter, times(1)).updateDetailFields(festival2, detailItem);
         }
     }
 
