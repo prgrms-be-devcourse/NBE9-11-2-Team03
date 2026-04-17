@@ -7,6 +7,7 @@ import com.example.domain.festival.dto.external.FestivalApiItem;
 import com.example.domain.festival.dto.external.FestivalApiResponse;
 import com.example.domain.festival.dto.response.FestivalSyncResult;
 import com.example.domain.festival.entity.Festival;
+import com.example.domain.festival.event.FestivalSyncEventPublisher;
 import com.example.domain.festival.repository.FestivalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class FestivalSyncService {
     private final FestivalApiClient festivalApiClient;
     private final FestivalApiConverter festivalApiConverter;
     private final FestivalRepository festivalRepository;
+    private final FestivalSyncEventPublisher festivalSyncEventPublisher;
 
     // 목록 API 기반 기본 축제 데이터 저장/수정
     public FestivalSyncResult syncFestivalList(int pageNo, int numOfRows, String eventStartDate) {
@@ -111,6 +113,16 @@ public class FestivalSyncService {
     }
 
 
+    //목록 동기화 완료 후, 변경된 contentId 목록에 대한 상세 보강 이벤트를 발행함
+    public void publishSyncCompletedEvent(List<String> changedContentIds) {
+        if (changedContentIds == null || changedContentIds.isEmpty()) {
+            return;
+        }
+
+        festivalSyncEventPublisher.publishSyncCompleted(changedContentIds);
+    }
+
+    //####################삭제 고려#########이제 배열 값 처리x => 이벤트 처리라?##
     //상세 보강 대상 contentId 수집 (목록 변경 + 상세 미완료)
     @Transactional(readOnly = true)
     public List<String> collectDetailEnrichTargetContentIds(List<String> changedContentIds) {
@@ -146,6 +158,8 @@ public class FestivalSyncService {
 
         //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
         long totalStart = System.currentTimeMillis();
+        //성능TEST코드: 상세 API 호출 횟수 (추후 삭제 가능)
+        int apiCallCount = 0;
 
         for (String contentId : contentIds) {
             try {
@@ -155,8 +169,9 @@ public class FestivalSyncService {
 
                 boolean wasDetailIncomplete = festivalApiConverter.isDetailIncomplete(festival);
 
-                //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+                //성능TEST코드: API 시간 호출 시간 및 호출 횟수 (추후 삭제 가능)
                 long apiStart = System.currentTimeMillis();
+                apiCallCount++;
 
                 FestivalApiResponse detailResponse =
                         festivalApiClient.fetchFestivalDetail(contentId);
@@ -211,6 +226,7 @@ public class FestivalSyncService {
 
         //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
         long totalEnd = System.currentTimeMillis();
+        System.out.println("상세 API 호출 횟수: " + apiCallCount);
         System.out.println("상세 전체 시간: " + (totalEnd - totalStart) + "ms");
 
         return new FestivalSyncResult(contentIds.size(), 0, updatedCount, failedCount, contentIds);

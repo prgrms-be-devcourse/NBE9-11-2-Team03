@@ -18,7 +18,7 @@ public class FestivalAdminController {
 
     private final FestivalSyncService festivalSyncService;
 
-    //메인 관리자 동기화 메인 API: 목록 동기화 후, 변경된 contentId만 상세 보강까지 함께 수행한다.
+    //메인 관리자 동기화 메인 API: 목록 동기화 후, 변경된 contentId에 대해 상세 보강 이벤트를 발행한다.
     @PostMapping("/sync-and-enrich")
     public RsData<FestivalSyncResponseDto> syncAndEnrichFestivals(
             @RequestParam(defaultValue = "1") int pageNo,
@@ -28,33 +28,19 @@ public class FestivalAdminController {
         FestivalSyncResult listResult =
                 festivalSyncService.syncFestivalList(pageNo, numOfRows, eventStartDate);
 
-        List<String> detailTargetContentIds =
-                festivalSyncService.collectDetailEnrichTargetContentIds(listResult.getChangedContentIds());
-
-        if (detailTargetContentIds == null || detailTargetContentIds.isEmpty()) {
-            FestivalSyncResponseDto response = new FestivalSyncResponseDto(
-                    listResult.getTotalCount(),
-                    listResult.getCreatedCount(),
-                    listResult.getUpdatedCount(),
-                    listResult.getFailedCount()
-            );
-
-            return RsData.success("축제 동기화가 완료되었고, 상세 보강 대상은 없습니다.", response);
-        }
-
-        FestivalSyncResult detailResult =
-                festivalSyncService.enrichFestivalDetailsByContentIds(detailTargetContentIds);
+        //목록 동기화 결과를 바탕으로 상세 보강 이벤트 발행
+        festivalSyncService.publishSyncCompletedEvent(listResult.getChangedContentIds());
 
         FestivalSyncResponseDto response = new FestivalSyncResponseDto(
                 listResult.getTotalCount(),
                 listResult.getCreatedCount(),
-                listResult.getUpdatedCount() + detailResult.getUpdatedCount(),
-                listResult.getFailedCount() + detailResult.getFailedCount()
+                listResult.getUpdatedCount(),
+                listResult.getFailedCount()
         );
 
-        String message = detailResult.getFailedCount() > 0
-                ? "축제 동기화 및 상세 정보 보강이 부분 완료되었습니다."
-                : "축제 동기화 및 상세 정보 보강이 완료되었습니다.";
+        String message = (listResult.getChangedContentIds() == null || listResult.getChangedContentIds().isEmpty())
+                ? "축제 목록 동기화가 완료되었고, 상세 보강 대상은 없습니다."
+                : "축제 목록 동기화가 완료되었고, 변경된 축제에 대한 상세 보강 처리가 진행되었습니다.";
 
         return RsData.success(message, response);
     }
