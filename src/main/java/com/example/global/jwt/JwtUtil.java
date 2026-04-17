@@ -28,8 +28,8 @@ public class JwtUtil {
     private String secret;
 
     // access token이 몇 ms 동안 유효한지 설정
-    // 기본값 3600000ms = 1시간
-    @Value("${jwt.access-token-expiration-ms:3600000}")
+    // 기본값 1800000ms = 30분
+    @Value("${jwt.access-token-expiration-ms:1800000}")
     private long accessTokenExpirationMs;
 
     // refresh token이 몇 ms 동안 유효한지 설정함.
