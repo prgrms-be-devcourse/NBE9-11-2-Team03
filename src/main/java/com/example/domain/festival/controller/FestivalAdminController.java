@@ -18,7 +18,9 @@ public class FestivalAdminController {
 
     private final FestivalSyncService festivalSyncService;
 
-    //메인 관리자 동기화 메인 API: 목록 동기화 후, 변경된 contentId에 대해 상세 보강 이벤트를 발행한다.
+    // 메인 관리자 동기화 API
+    // 목록 데이터를 먼저 동기화한 뒤, 변경된 contentId에 대해 상세 보강 후속 처리를 위한 이벤트를 발행함
+    // 본 응답에는 목록 동기화 결과만 포함되며, 상세 보강 완료 결과는 포함되지 않음
     @PostMapping("/sync-and-enrich")
     public RsData<FestivalSyncResponseDto> syncAndEnrichFestivals(
             @RequestParam(defaultValue = "1") int pageNo,
@@ -40,7 +42,7 @@ public class FestivalAdminController {
 
         String message = (listResult.getChangedContentIds() == null || listResult.getChangedContentIds().isEmpty())
                 ? "축제 목록 동기화가 완료되었고, 상세 보강 대상은 없습니다."
-                : "축제 목록 동기화가 완료되었고, 변경된 축제에 대한 상세 보강 처리가 진행되었습니다.";
+                : "축제 목록 동기화가 완료되었고, 변경된 축제에 대한 상세 보강이 후속 처리됩니다.";
 
         return RsData.success(message, response);
     }
