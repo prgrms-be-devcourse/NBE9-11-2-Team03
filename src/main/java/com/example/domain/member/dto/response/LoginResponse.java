@@ -10,6 +10,7 @@ import lombok.Getter;
 public class LoginResponse {
 
     private final String accessToken;
+    private final String refreshToken;
     private final Long memberId;
     private final String loginId;
     private final String nickname;
@@ -18,6 +19,7 @@ public class LoginResponse {
 
     private LoginResponse(
             String accessToken,
+            String refreshToken,
             Long memberId,
             String loginId,
             String nickname,
@@ -25,6 +27,7 @@ public class LoginResponse {
             MemberStatus status
     ) {
         this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
         this.memberId = memberId;
         this.loginId = loginId;
         this.nickname = nickname;
@@ -32,10 +35,11 @@ public class LoginResponse {
         this.status = status;
     }
 
-    // 발급된 access token과 Member 엔티티를 조합해 로그인 응답 DTO를 만든다.
-    public static LoginResponse of(String accessToken, Member member) {
+    // 발급된 access token, refresh token과 Member 엔티티를 조합해 로그인 응답 DTO를 만듭니다.
+    public static LoginResponse of(String accessToken, String refreshToken, Member member) {
         return new LoginResponse(
                 accessToken,
+                refreshToken,
                 member.getId(),
                 member.getLoginId(),
                 member.getNickname(),
