@@ -1,17 +1,24 @@
 package com.example.domain.member.service;
 
+import com.example.domain.bookmark.entity.FestivalBookmark;
 import com.example.domain.bookmark.repository.FestivalBookmarkRepository;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
+import com.example.domain.member.dto.response.MyBookMarkPageRes;
 import com.example.domain.member.dto.response.MyPageRes;
+import com.example.domain.member.dto.response.MyReviewPageRes;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.repository.MemberRepository;
+import com.example.domain.review.entity.Review;
+import com.example.domain.review.entity.ReviewStatus;
 import com.example.domain.review.repository.ReviewRepository;
 import com.example.domain.review.service.ReviewService;
 import com.example.global.exception.CustomNotFoundException;
 import com.example.global.exception.ForbiddenException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -37,5 +44,17 @@ public class MyPageService {
                 reviewCount,
                 bookMarkCount
         );
+    }
+    //logind를 토대로 내가 쓴 리뷰를 찾고, 그리뷰를 페이징하여 넘겨주는 메서드
+    public MyReviewPageRes getMyReviews(String loginid, Pageable pageable) {
+        Member member = memberRepository.findByLoginId(loginid).orElseThrow(()->new CustomNotFoundException("로그인한 회원 정보를 찾을 수 없습니다."));
+        Page<Review> reviews = reviewRepository.findByMemberIdAndStatus(member.getId(), ReviewStatus.ACTIVE,pageable);
+        return MyReviewPageRes.from(reviews);
+    }
+
+    public MyBookMarkPageRes getMyBookMark(String loginId, Pageable pageable) {
+        Member member = memberRepository.findByLoginId(loginId).orElseThrow(()->new CustomNotFoundException("로그인한 회원 정보를 찾을 수 없습니다."));
+        Page<FestivalBookmark> bookmarkPage = festivalBookmarkRepository.findByMemberId(member.getId(),pageable);
+        return MyBookMarkPageRes.from(bookmarkPage);
     }
 }

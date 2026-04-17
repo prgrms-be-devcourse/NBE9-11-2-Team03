@@ -117,4 +117,37 @@ public class MyPageTest {
                 .andExpect(jsonPath("$.data.totalElements").value(2))
                 .andDo(print());
     }
+
+    @Test
+    @DisplayName("내가 찜한 축제 조회 - 북마크한 축제 목록이 페이징되어 조회된다.")
+    @WithMockUser(username = "myPageUser")
+    void getMyBookmarksTest() throws Exception {
+        // 1. Given: 테스트용 회원 및 축제 생성
+        Member member = new Member("myPageUser", "1234", "홍길동", "mypage@test.com", "길동이t1", 0);
+        memberRepository.save(member);
+
+        // 축제 2개 생성
+        Festival festival1 = new Festival("F_TEST_01", "벚꽃 축제", "설명", "서울",
+                LocalDateTime.now(), LocalDateTime.now().plusDays(7), 126.0, 37.0);
+        Festival festival2 = new Festival("F_TEST_02", "불꽃 축제", "설명", "부산",
+                LocalDateTime.now(), LocalDateTime.now().plusDays(7), 129.0, 35.0);
+        festivalRepository.saveAll(List.of(festival1, festival2));
+
+        // 2. Given: 회원이 축제 2개를 찜(북마크) 함
+        FestivalBookmark bookmark1 = new FestivalBookmark(member, festival1);
+        FestivalBookmark bookmark2 = new FestivalBookmark(member, festival2);
+        festivalBookmarkRepository.saveAll(List.of(bookmark1, bookmark2));
+
+        // 3. When: 내가 찜한 축제 조회 API 호출
+        mockMvc.perform(get("/api/users/me/bookmarks"))
+                .andExpect(status().isOk())
+                // 4. Then: 응답 구조(MyBookMarkPageRes) 및 데이터 검증
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.message").value("찜한 축제 목록 조회 성공"))
+                .andExpect(jsonPath("$.data.content.length()").value(2))
+                .andExpect(jsonPath("$.data.content[0].title").exists()) // 축제 제목 존재 확인
+                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andDo(print());
+    }
 }
