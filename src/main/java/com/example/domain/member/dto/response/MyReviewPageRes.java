@@ -5,7 +5,7 @@ import org.springframework.data.domain.Page;
 
 import java.util.List;
 
-public record MyPageReviewRes(
+public record MyReviewPageRes(
         List<MyReviewItemRes> content,
         int page,
         int size,
@@ -13,8 +13,8 @@ public record MyPageReviewRes(
         int totalPages,
         boolean hasNext
 ) {
-    public static MyPageReviewRes from (Page<Review> reviewPageewPage){
-        return new MyPageReviewRes(
+    public static MyReviewPageRes from (Page<Review> reviewPageewPage){
+        return new MyReviewPageRes(
                 reviewPageewPage.getContent().stream()
                         .map(MyReviewItemRes::from)
                         .toList(),

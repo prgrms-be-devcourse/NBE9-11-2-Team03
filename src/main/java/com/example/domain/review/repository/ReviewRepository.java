@@ -22,4 +22,7 @@ public interface ReviewRepository extends JpaRepository<Review,Long> {
 
     long countByMemberId(Long memberId);
 
+    //사용자가 단 리뷰
+    Page<Review> findByMemberIdAndStatus(Long memberId,ReviewStatus status,Pageable pageable);
+
 }
