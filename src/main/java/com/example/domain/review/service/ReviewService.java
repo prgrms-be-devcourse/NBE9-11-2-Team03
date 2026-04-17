@@ -4,6 +4,7 @@ import com.example.domain.admin.dto.AdminReviewBlindRes;
 import com.example.domain.admin.dto.AdminReviewReportPageRes;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
+import com.example.domain.member.dto.response.MyReviewPageRes;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.review.dto.*;
@@ -228,6 +229,12 @@ public class ReviewService {
                 review.getReportCount()
         );
     }
+    //logind를 토대로 내가 쓴 리뷰를 찾고, 그리뷰를 페이징하여 넘겨주는 메서드
+    public MyReviewPageRes getMyReviews(String loginid, Pageable pageable) {
+        Member member = memberRepository.findByLoginId(loginid).orElseThrow(()->new CustomNotFoundException("로그인한 회원 정보를 찾을 수 없습니다."));
+        Page<Review> reviews = reviewRepository.findByMemberIdAndStatus(member.getId(),ReviewStatus.ACTIVE,pageable);
+       return MyReviewPageRes.from(reviews);
 
+    }
 }
 
