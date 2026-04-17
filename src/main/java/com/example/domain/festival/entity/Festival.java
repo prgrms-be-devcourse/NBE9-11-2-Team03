@@ -144,9 +144,4 @@ public class Festival extends BaseEntity {
         this.homepageUrl = homepageUrl;
         this.contactNumber = contactNumber;
     }
-
-    //축제 상세페이지 조회 시 조회수 증가 메서드
-    public void increaseViewCount() {
-        this.viewCount ++;
-    }
 }
