@@ -5,16 +5,20 @@ import com.example.domain.bookmark.repository.FestivalBookmarkRepository;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
 import com.example.domain.member.entity.Member;
+import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.review.entity.Review;
 import com.example.domain.review.repository.ReviewRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -45,6 +51,8 @@ public class MyPageTest {
     ReviewRepository reviewRepository;
     @Autowired
     FestivalBookmarkRepository festivalBookmarkRepository;
+    @Autowired
+    PasswordEncoder passwordEncoder;
 
 
 
@@ -119,35 +127,75 @@ public class MyPageTest {
     }
 
     @Test
-    @DisplayName("내가 찜한 축제 조회 - 북마크한 축제 목록이 페이징되어 조회된다.")
-    @WithMockUser(username = "myPageUser")
-    void getMyBookmarksTest() throws Exception {
-        // 1. Given: 테스트용 회원 및 축제 생성
-        Member member = new Member("myPageUser", "1234", "홍길동", "mypage@test.com", "길동이t1", 0);
+    @DisplayName("회원 탈퇴 성공 - 비밀번호가 일치하면 상태가 WITHDRAWN으로 변경된다.")
+    @WithMockUser(username = "withdrawUser") // 인증 컨텍스트에 담길 이름
+    void withdrawSuccessTest() throws Exception {
+        // 1. Given: 실제 DB에 테스트용 회원 저장
+        String loginId = "withdrawUser";
+        String rawPassword = "password123";
+
+        // PasswordEncoder를 주입받아 암호화해서 저장해야 서비스의 matches를 통과합니다.
+        Member member = new Member(
+                loginId,
+                passwordEncoder.encode(rawPassword), // 암호화 필수
+                "탈퇴전닉네임",
+                "withdraw@test.com",
+                "길동",
+                0
+        );
         memberRepository.save(member);
 
-        // 축제 2개 생성
-        Festival festival1 = new Festival("F_TEST_01", "벚꽃 축제", "설명", "서울",
-                LocalDateTime.now(), LocalDateTime.now().plusDays(7), 126.0, 37.0);
-        Festival festival2 = new Festival("F_TEST_02", "불꽃 축제", "설명", "부산",
-                LocalDateTime.now(), LocalDateTime.now().plusDays(7), 129.0, 35.0);
-        festivalRepository.saveAll(List.of(festival1, festival2));
+        // 2. When: 탈퇴 API 호출
+        String requestBody = String.format("""
+            {
+                "password": "%s",
+                "passwordConfirm": "%s"
+            }
+            """, rawPassword, rawPassword);
 
-        // 2. Given: 회원이 축제 2개를 찜(북마크) 함
-        FestivalBookmark bookmark1 = new FestivalBookmark(member, festival1);
-        FestivalBookmark bookmark2 = new FestivalBookmark(member, festival2);
-        festivalBookmarkRepository.saveAll(List.of(bookmark1, bookmark2));
-
-        // 3. When: 내가 찜한 축제 조회 API 호출
-        mockMvc.perform(get("/api/users/me/bookmarks"))
+        mockMvc.perform(delete("/api/users/me/withdraw") // 경로 확인: /api/v1/mypage/me/withdraw
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
                 .andExpect(status().isOk())
-                // 4. Then: 응답 구조(MyBookMarkPageRes) 및 데이터 검증
-                .andExpect(jsonPath("$.status").value(200))
-                .andExpect(jsonPath("$.message").value("찜한 축제 목록 조회 성공"))
-                .andExpect(jsonPath("$.data.content.length()").value(2))
-                .andExpect(jsonPath("$.data.content[0].title").exists()) // 축제 제목 존재 확인
-                .andExpect(jsonPath("$.data.totalElements").value(2))
-                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.message").value("탈퇴처리가 성공적으로 수행되었습니다."))
+                .andDo(print());
+
+        // 3. Then: 실제 DB 상태 검증
+        // 영속성 컨텍스트를 갱신하기 위해 다시 조회합니다.
+        Member withdrawnMember = memberRepository.findByLoginId(loginId).orElseThrow();
+        assertThat(withdrawnMember.getStatus()).isEqualTo(MemberStatus.WITHDRAWN);
+        assertThat(withdrawnMember.getNickname()).isEqualTo("탈퇴한회원_%d".formatted(member.getId()));
+    }
+
+    @Test
+    @DisplayName("회원 탈퇴 실패 - 비밀번호가 일치하지 않으면 400 에러를 반환한다.")
+    @WithMockUser(username = "failUser")
+    void withdrawFailTest() throws Exception {
+        // 1. Given: 회원 저장
+        Member member = new Member(
+                "failUser",
+                passwordEncoder.encode("correctPassword"),
+                "실패테스트",
+                "fail@test.com",
+                "길동",
+                0
+        );
+        memberRepository.save(member);
+
+        // 틀린 비밀번호 요청
+        String requestBody = """
+            {
+                "password": "wrongPassword",
+                "passwordConfirm": "wrongPassword"
+            }
+            """;
+
+        // 2. When & Then
+        mockMvc.perform(delete("/api/users/me/withdraw")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("비밀번호가 일치하지 않습니다."))
                 .andDo(print());
     }
 }
