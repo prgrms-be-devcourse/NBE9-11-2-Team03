@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -42,7 +43,7 @@ public class AdminMemberControllerTest {
     private ReviewRepository reviewRepository;
     @Autowired
     private FestivalRepository festivalRepository;
-    
+
     @Test
     @DisplayName("관리자 전체회원 목록조회")
     void t1() throws Exception{

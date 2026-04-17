@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @AllArgsConstructor
@@ -19,7 +20,11 @@ public class FestivalService {
         return festivalRepository.searchFestivals(searchDto, pageable);
     }
 
+    @Transactional
     public Festival getFestival(Long id) {
+
+        festivalRepository.incrementViewCount(id);
+
         return festivalRepository.findById(id)
                 .orElseThrow(()-> new CustomNotFoundException("404","존재하지 않는 축제입니다."));
     }
