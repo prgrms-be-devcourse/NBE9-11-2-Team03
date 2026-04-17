@@ -51,6 +51,8 @@ dependencies {
     annotationProcessor("jakarta.annotation:jakarta.annotation-api")
     annotationProcessor("jakarta.persistence:jakarta.persistence-api")
     implementation("org.jsoup:jsoup:1.17.2") //DB 정제용 의존성추가
+
+    runtimeOnly("com.mysql:mysql-connector-j")//mysql 의존성 추가
 }
 
 tasks.withType<Test> {

@@ -76,4 +76,14 @@ public class Review extends BaseEntity {
     public void increaseReportCount() {
         this.reportCount++;
     }
+    //리뷰 좋아요 카운트 및 좋아요 취소
+    public void increaseLikeCount() {
+        this.likeCount++;
+    }
+
+    public void decreaseLikeCount() {
+        if (this.likeCount > 0) {
+            this.likeCount--;
+        }
+    }
 }
