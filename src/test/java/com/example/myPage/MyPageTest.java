@@ -74,12 +74,47 @@ public class MyPageTest {
         mockMvc.perform(get("/api/users/me"))
                 .andExpect(status().isOk())
                 // 5. Then: RsData 구조 및 데이터 검증
-                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.status").value("200"))
                 .andExpect(jsonPath("$.message").value("마이페이지 조회에 성공하였습니다."))
                 .andExpect(jsonPath("$.data.nickname").value("길동이t1"))
                 .andExpect(jsonPath("$.data.email").value("mypage@test.com"))
                 .andExpect(jsonPath("$.data.reviewCount").value(2)) // 리뷰 2개
                 .andExpect(jsonPath("$.data.bookMarkCount").value(1)) // 북마크 1개
+                .andDo(print());
+    }
+
+    @Test
+    @DisplayName("내가 쓴 리뷰 조회 - 작성한 리뷰 목록이 최신순으로 페이징되어 조회된다.")
+    @WithMockUser(username = "myPageUser")
+    void getMyReviewsTest() throws Exception {
+        // 1. Given: 테스트용 회원 및 축제 생성
+        Member member = new Member("myPageUser", "1234", "홍길동", "mypage@test.com", "길동이t1", 0);
+        memberRepository.save(member);
+
+        Festival festival = new Festival("F_TEST", "테스트 축제", "설명", "주소",
+                LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(1), 126.0, 37.0);
+        festivalRepository.save(festival);
+
+        // 2. Given: 해당 회원이 작성한 리뷰 2개 생성 (시간차를 두어 생성)
+        Review review1 = new Review(member, festival, "첫 번째 리뷰", null, 5);
+        Review review2 = new Review(member, festival, "두 번째 리뷰", null, 4);
+        reviewRepository.saveAll(List.of(review1, review2));
+
+        // 3. When: 내가 쓴 리뷰 조회 API 호출 (페이지 0, 사이즈 10)
+        mockMvc.perform(get("/api/users/me/reviews")
+                        .param("page", "0")
+                        .param("size", "5"))
+                .andExpect(status().isOk())
+                // 4. Then: 응답 구조 및 데이터 검증
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.message").value("내가 쓴 리뷰 목록 조회 성공"))
+                .andExpect(jsonPath("$.data.content.length()").value(2))
+                // 최신순 정렬 가정 시 두 번째 리뷰가 먼저 나와야 함
+                .andExpect(jsonPath("$.data.content[0].content").value("두 번째 리뷰"))
+                .andExpect(jsonPath("$.data.content[0].festivalTitle").value("테스트 축제"))
+                .andExpect(jsonPath("$.data.content[1].content").value("첫 번째 리뷰"))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.totalElements").value(2))
                 .andDo(print());
     }
 }
