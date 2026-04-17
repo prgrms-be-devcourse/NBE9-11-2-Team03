@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface FestivalRepository extends JpaRepository<Festival, Long>, FestivalRepositoryCustom {
@@ -16,4 +17,7 @@ public interface FestivalRepository extends JpaRepository<Festival, Long>, Festi
 
     // 축제 검색용
     Page<Festival> searchFestivals(FestivalSearchDto searchDto, Pageable pageable);
+
+    //반복 단건 조회(findByContentId)로 인한 DB 병목을 줄이기 위한 메서드
+    List<Festival> findAllByContentIdIn(List<String> contentIds);
 }

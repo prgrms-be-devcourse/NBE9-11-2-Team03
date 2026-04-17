@@ -1,4 +1,4 @@
-//TODOS: 추후, service 디렉터리로 옮기기
+
 package com.example.domain.festival.service;
 
 import com.example.domain.festival.client.FestivalApiClient;
@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -55,21 +57,42 @@ public class FestivalSyncService {
         int updatedCount = 0;
         List<String> changedContentIds = new ArrayList<>();
 
-        //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+        //성능TEST코드: DB 처리 시간 시간 (추후 삭제 가능)
         long dbStart = System.currentTimeMillis();
 
+        // 목록 API 응답에서 contentId만 먼저 추출한다. (DB를 건별 조회X, 필요한 축제만 한 번에 조회하기 위함)
+        List<String> contentIds = items.stream()
+                .map(FestivalApiItem::getContentid)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        // contentId 목록으로 기존 축제를 한 번에 조회한다.
+        List<Festival> existingFestivals = festivalRepository.findAllByContentIdIn(contentIds);
+
+        // 조회한 축제를 contentId 기준 Map으로 변환한다. (item 순회 시 O(1)에 가깝게 기존 축제를 찾기 위함)
+        Map<String, Festival> existingFestivalMap = existingFestivals.stream()
+                .collect(Collectors.toMap(
+                        Festival::getContentId,
+                        Function.identity()
+                ));
+
+        //비교 저장 로직
         for (FestivalApiItem item : items) {
             String contentId = item.getContentid();
 
-            Festival existingFestival = festivalRepository.findByContentId(contentId)
-                    .orElse(null);
+            // 미리 조회한 Map에서 기존 데이터를 꺼내서 사용
+            Festival existingFestival = existingFestivalMap.get(contentId);
 
+            // DB에 없는 신규 축제 → insert
             if (existingFestival == null) {
                 Festival newFestival = festivalApiConverter.toEntityFromListItem(item);
                 festivalRepository.save(newFestival);
                 createdCount++;
                 changedContentIds.add(contentId);
-            } else if (festivalApiConverter.hasListChanges(existingFestival, item)) {
+            }
+            // DB에 존재하고 목록 필드가 변경된 경우 → update
+            else if (festivalApiConverter.hasListChanges(existingFestival, item)) {
                 festivalApiConverter.updateFromListItem(existingFestival, item);
                 updatedCount++;
                 changedContentIds.add(contentId);
