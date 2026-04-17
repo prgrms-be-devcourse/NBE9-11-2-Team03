@@ -1,6 +1,7 @@
 package com.example.domain.member.controller;
 
 import com.example.domain.member.dto.response.MyPageRes;
+import com.example.domain.member.dto.response.MyPageReviewRes;
 import com.example.domain.member.service.MemberService;
 import com.example.domain.member.service.MyPageService;
 import com.example.global.rsData.RsData;
@@ -36,4 +37,11 @@ public class MyPageController {
                 )
         );
     }
+
+ /*   @GetMapping("/reviews")
+    public ResponseEntity<RsData<MyPageReviewRes>> getMyReview(){
+
+    }
+
+  */
 }
