@@ -2,11 +2,15 @@ package com.example.domain.member.service;
 
 import com.example.domain.member.dto.request.LoginRequest;
 import com.example.domain.member.dto.request.SignupRequest;
+import com.example.domain.member.dto.request.TokenReissueRequest;
 import com.example.domain.member.dto.response.LoginResponse;
 import com.example.domain.member.dto.response.SignupResponse;
+import com.example.domain.member.dto.response.TokenReissueResponse;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.entity.MemberStatus;
+import com.example.domain.member.entity.RefreshToken;
 import com.example.domain.member.repository.MemberRepository;
+import com.example.domain.member.repository.RefreshTokenRepository;
 import com.example.global.exception.CustomNotFoundException;
 import com.example.global.exception.DuplicateResourceException;
 import com.example.global.exception.ForbiddenException;
@@ -17,7 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.security.sasl.AuthenticationException;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +31,7 @@ import javax.security.sasl.AuthenticationException;
 public class AuthService {
 
     private final MemberRepository memberRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     // 회원가입 때는 비밀번호를 암호화하고, 로그인 때는 입력값과 저장값을 비교한다.
     private final PasswordEncoder passwordEncoder;
     // 로그인 성공 후 access token을 만들기 위해 사용하는 JWT 전용 유틸이다.
@@ -53,17 +58,48 @@ public class AuthService {
     }
 
     // 2) 로그인
-    // 회원 조회 -> 탈퇴 여부 확인 -> 비밀번호 검증 -> 토큰 발급 -> 응답 변환 순서로 진행한다.
+    // 회원 조회 -> 탈퇴 여부 확인 -> 비밀번호 검증 -> access/refresh token 발급 순서로 진행합니다.
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         Member member = findMemberByLoginId(request.getLoginId());
         validateMemberCanLogin(member);
         validatePassword(request.getPassword(), member.getPassword());
 
         String accessToken = createAccessToken(member);
-        return LoginResponse.of(accessToken, member);
+        String refreshToken = createAndSaveRefreshToken(member);
+
+        return LoginResponse.of(accessToken, refreshToken, member);
     }
 
-    // 3) 회원가입 시 아이디, 이메일, 닉네임 중복 여부를 검사
+    // 3) 토큰 재발급
+    // refresh token이 정상이고 DB에 저장된 값과 같을 때만 새 토큰을 발급함.
+    @Transactional
+    public TokenReissueResponse reissue(TokenReissueRequest request) {
+        String refreshTokenValue = request.getRefreshToken();
+        validateRefreshToken(refreshTokenValue);
+
+        RefreshToken refreshToken = findRefreshToken(refreshTokenValue);
+        validateRefreshTokenNotExpired(refreshToken);
+
+        Member member = refreshToken.getMember();
+        validateMemberCanLogin(member);
+
+        String newAccessToken = createAccessToken(member);
+        String newRefreshToken = jwtUtil.createRefreshToken(member);
+        refreshToken.update(newRefreshToken, jwtUtil.getExpirationDateTime(newRefreshToken));
+
+        return TokenReissueResponse.of(newAccessToken, newRefreshToken);
+    }
+
+    // 4) 로그아웃
+    // 로그아웃하면 DB에 저장된 refresh token을 삭제해서 재발급을 막습니다.
+    @Transactional
+    public void logout(String loginId) {
+        Member member = findMemberByLoginId(loginId);
+        refreshTokenRepository.deleteByMemberId(member.getId());
+    }
+
+    // 5) 회원가입 시 아이디, 이메일, 닉네임 중복 여부를 검사
     // 지금은 골격 단계이므로 예외는 IllegalArgumentException으로 두고,
     // 이후 커스텀 예외와 전역 예외 처리 단계에서 세분화하면 된다.
     private void validateDuplicateSignupInfo(SignupRequest request) {
@@ -109,5 +145,40 @@ public class AuthService {
     // 이렇게 분리하면 AuthService는 로그인 흐름에만 집중할 수 있다.
     private String createAccessToken(Member member) {
         return jwtUtil.createAccessToken(member);
+    }
+
+    // refresh token은 DB에 저장하고, 이미 있으면 새 값으로 교체함.
+    private String createAndSaveRefreshToken(Member member) {
+        String refreshTokenValue = jwtUtil.createRefreshToken(member);
+        LocalDateTime expiresAt = jwtUtil.getExpirationDateTime(refreshTokenValue);
+
+        refreshTokenRepository.findByMemberId(member.getId())
+                .ifPresentOrElse(
+                        refreshToken -> refreshToken.update(refreshTokenValue, expiresAt),
+                        () -> refreshTokenRepository.save(RefreshToken.create(member, refreshTokenValue, expiresAt))
+                );
+
+        return refreshTokenValue;
+    }
+
+    // refresh token 형식이 맞는지 먼저 확인함.
+    private void validateRefreshToken(String refreshToken) {
+        if (!jwtUtil.validateToken(refreshToken) || !jwtUtil.isRefreshToken(refreshToken)) {
+            throw new UnauthorizedException("유효하지 않은 refresh token입니다.");
+        }
+    }
+
+    // DB에 저장된 refresh token인지 확인함.
+    private RefreshToken findRefreshToken(String refreshToken) {
+        return refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new UnauthorizedException("유효하지 않은 refresh token입니다."));
+    }
+
+    // 만료된 refresh token은 삭제하고 재발급을 막음.
+    private void validateRefreshTokenNotExpired(RefreshToken refreshToken) {
+        if (refreshToken.isExpired()) {
+            refreshTokenRepository.delete(refreshToken);
+            throw new UnauthorizedException("만료된 refresh token입니다.");
+        }
     }
 }

@@ -69,8 +69,8 @@ public class SecurityConfig {
                 // H2 콘솔을 iframe으로 열 수 있도록 개발 중에만 같은 출처 frame을 허용한다.
                 .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
                 .authorizeHttpRequests(auth -> auth
-                        // 회원가입과 로그인은 토큰이 없어도 접근 가능해야함
-                        .requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login").permitAll()
+                        // 회원가입, 로그인, 토큰 재발급은 access token 없이 접근할 수 있어야 함.
+                        .requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login", "/api/auth/reissue").permitAll()
                         // Swagger와 H2 콘솔은 개발 중 API 확인을 위해 열어둔다.
                         .requestMatchers(
                                 "/swagger-ui/**",
