@@ -117,9 +117,7 @@ public class FestivalApiConverter {
 
     //상세 정보 미완료 상태 여부 판단
     public boolean isDetailIncomplete(Festival festival) {
-        return "상세 설명 없음".equals(festival.getOverview())
-                || festival.getHomepageUrl() == null
-                || festival.getHomepageUrl().isBlank();
+        return "상세 설명 없음".equals(festival.getOverview());
     }
 
     // L_DONG_REGN_CD 앞 2자리만 추출

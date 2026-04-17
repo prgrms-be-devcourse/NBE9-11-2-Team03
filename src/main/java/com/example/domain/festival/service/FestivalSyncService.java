@@ -25,8 +25,16 @@ public class FestivalSyncService {
 
     // 목록 API 기반 기본 축제 데이터 저장/수정
     public FestivalSyncResult syncFestivalList(int pageNo, int numOfRows, String eventStartDate) {
+
+        //성능 TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+        long totalStart = System.currentTimeMillis();
+        long apiStart = System.currentTimeMillis();
+
         FestivalApiResponse response =
                 festivalApiClient.fetchFestivalList(pageNo, numOfRows, eventStartDate);
+
+        //성능 TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+        long apiEnd = System.currentTimeMillis();
 
         // 빈 페이지는 예외가 아니라 0건 동기화 결과로 반환(0, ,0, 0, 0)
         if (response == null ||
@@ -47,6 +55,9 @@ public class FestivalSyncService {
         int updatedCount = 0;
         List<String> changedContentIds = new ArrayList<>();
 
+        //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+        long dbStart = System.currentTimeMillis();
+
         for (FestivalApiItem item : items) {
             String contentId = item.getContentid();
 
@@ -65,6 +76,14 @@ public class FestivalSyncService {
             }
         }
 
+        //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+        long dbEnd = System.currentTimeMillis();
+        long totalEnd = System.currentTimeMillis();
+
+        System.out.println("목록 API 시간: " + (apiEnd - apiStart) + "ms");
+        System.out.println("DB 처리 시간: " + (dbEnd - dbStart) + "ms");
+        System.out.println("총 시간: " + (totalEnd - totalStart) + "ms");
+
         return new FestivalSyncResult(items.size(), createdCount, updatedCount, 0, changedContentIds);
     }
 
@@ -74,7 +93,14 @@ public class FestivalSyncService {
     public List<String> collectDetailEnrichTargetContentIds(List<String> changedContentIds) {
         Set<String> targetContentIds = new LinkedHashSet<>(changedContentIds);
 
+        //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+        long start = System.currentTimeMillis();
+
         List<Festival> festivals = festivalRepository.findAll();
+
+        //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+        long end = System.currentTimeMillis();
+        System.out.println("findAll 조회 시간: " + (end - start) + "ms");
 
         for (Festival festival : festivals) {
             if (festivalApiConverter.isDetailIncomplete(festival)) {
@@ -82,13 +108,21 @@ public class FestivalSyncService {
             }
         }
 
+        //상세 Default 확인용////
+        System.out.println("상세 보강 대상 수: " + targetContentIds.size());
+        System.out.println("상세 보강 대상 contentIds: " + targetContentIds);
+
         return new ArrayList<>(targetContentIds);
     }
+
 
     //상세 API 기반 상세 정보 보강 (변경된 contentId 목록만 변경 대상 ex. 초기적재 or 실제 변경)
     public FestivalSyncResult enrichFestivalDetailsByContentIds(List<String> contentIds) {
         int updatedCount = 0;
         int failedCount = 0;
+
+        //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+        long totalStart = System.currentTimeMillis();
 
         for (String contentId : contentIds) {
             try {
@@ -98,8 +132,16 @@ public class FestivalSyncService {
 
                 boolean wasDetailIncomplete = festivalApiConverter.isDetailIncomplete(festival);
 
+                //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+                long apiStart = System.currentTimeMillis();
+
                 FestivalApiResponse detailResponse =
                         festivalApiClient.fetchFestivalDetail(contentId);
+
+                //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+                long apiEnd = System.currentTimeMillis();
+                System.out.println("상세 API 1건: " + (apiEnd - apiStart) + "ms");
+
 
                 if (detailResponse == null ||
                         detailResponse.getResponse() == null ||
@@ -143,6 +185,10 @@ public class FestivalSyncService {
                 failedCount++;
             }
         }
+
+        //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+        long totalEnd = System.currentTimeMillis();
+        System.out.println("상세 전체 시간: " + (totalEnd - totalStart) + "ms");
 
         return new FestivalSyncResult(contentIds.size(), 0, updatedCount, failedCount, contentIds);
     }

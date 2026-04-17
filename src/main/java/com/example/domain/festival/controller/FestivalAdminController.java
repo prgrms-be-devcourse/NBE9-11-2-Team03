@@ -22,7 +22,7 @@ public class FestivalAdminController {
     @PostMapping("/sync-and-enrich")
     public RsData<FestivalSyncResponseDto> syncAndEnrichFestivals(
             @RequestParam(defaultValue = "1") int pageNo,
-            @RequestParam(defaultValue = "10") int numOfRows,
+            @RequestParam(defaultValue = "200") int numOfRows,
             @RequestParam(defaultValue = "20260101") String eventStartDate
     ) {
         FestivalSyncResult listResult =

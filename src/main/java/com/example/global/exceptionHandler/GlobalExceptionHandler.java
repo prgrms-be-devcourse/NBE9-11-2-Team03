@@ -134,14 +134,6 @@ public class GlobalExceptionHandler {
                 .body(RsData.fail(message));
     }
 
-    //401 Unauthorized (인증 실패)
-    @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<RsData<Void>> handleAuthenticationException(UnauthorizedException e) {
-        return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body(new RsData<>("401", e.getMessage(), null));
-    }
-
     // 404 Not Found (정상 요청이지만 대상 리소스를 찾을 수 없음)
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<RsData<Void>> handleNoSuchElementException(NoSuchElementException e) {
