@@ -1,5 +1,8 @@
 import org.gradle.kotlin.dsl.testImplementation
 
+import org.gradle.kotlin.dsl.annotationProcessor
+import org.gradle.kotlin.dsl.implementation
+
 plugins {
     java
     id("org.springframework.boot") version "3.5.13"

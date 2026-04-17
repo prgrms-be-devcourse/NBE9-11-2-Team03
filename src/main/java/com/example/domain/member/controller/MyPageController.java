@@ -1,5 +1,7 @@
 package com.example.domain.member.controller;
 
+import com.example.domain.bookmark.entity.FestivalBookmark;
+import com.example.domain.member.dto.response.MyBookMarkPageRes;
 import com.example.domain.member.dto.response.MyPageRes;
 import com.example.domain.member.dto.response.MyReviewPageRes;
 import com.example.domain.member.service.MyPageService;
@@ -7,6 +9,7 @@ import com.example.domain.review.service.ReviewService;
 import com.example.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -62,11 +65,33 @@ public class MyPageController {
             ) Pageable pageable
     ) {
         String loginid = authentication.getName();
-        MyReviewPageRes res = reviewService.getMyReviews(loginid,pageable);
+        MyReviewPageRes res = myPageService.getMyReviews(loginid,pageable);
         return ResponseEntity.ok(
                 new RsData<>("200","내가 쓴 리뷰 목록 조회 성공",res)
         );
     }
 
-
+    /**
+     *
+     * @param authentication 사용자 loginId를 담은 JWT토큰
+     * @param pageable 페이지 (사이즈 5 , 정렬 최근 찜한순)
+     * @return  내가 찜한 축제정보, 페이지 정보를 담은 객체를 반환하여 줍니다.
+     */
+    @GetMapping("/bookmarks")
+    @Operation(summary = "내가 찜한 축제 목록 조회",description = "로그인한 사용자가 자신이 찜한 축제의 목록을 조회합니다.")
+    public ResponseEntity<RsData<MyBookMarkPageRes>> getMyBookMark(
+            Authentication authentication,
+            @PageableDefault(
+                    size = 5,
+                    sort = "createdAt",
+                    direction = Sort.Direction.DESC
+            )
+            Pageable pageable
+    ){
+        String loginId = authentication.getName();
+        MyBookMarkPageRes res =myPageService.getMyBookMark(loginId,pageable);
+        return ResponseEntity.ok(
+                new RsData<>("200", "찜한 축제 목록 조회 성공",res)
+        );
+    }
 }
