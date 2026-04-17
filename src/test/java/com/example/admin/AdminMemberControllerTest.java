@@ -50,7 +50,7 @@ public class AdminMemberControllerTest {
                 .param("page","0")
                         .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.status").value("200"))
                 .andExpect(jsonPath("$.message").value("회원 목록 조회 성공"))
                 .andDo(print());
     }
@@ -66,7 +66,7 @@ public class AdminMemberControllerTest {
                         .param("page", "0")
                         .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.status").value("200"))
                 .andExpect(jsonPath("$.message").value("신고 누적회원 조회 성공"))
                 .andExpect(jsonPath("$.data.content[0].nickname").value("고신고자"))
                 .andExpect(jsonPath("$.data.content[0].reportCount").value(10))
@@ -83,7 +83,7 @@ public class AdminMemberControllerTest {
         mockMvc.perform(patch("/api/admin/members/" + memberId + "/withdraw")
                         .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.status").value("200"))
                 .andExpect(jsonPath("$.message").value("회원이 강제 탈퇴 처리되었습니다."))
                 .andDo(print());
 
