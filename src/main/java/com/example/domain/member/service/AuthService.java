@@ -12,10 +12,7 @@ import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.entity.RefreshToken;
 import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.member.repository.RefreshTokenRepository;
-import com.example.global.exception.CustomNotFoundException;
-import com.example.global.exception.DuplicateResourceException;
-import com.example.global.exception.ForbiddenException;
-import com.example.global.exception.UnauthorizedException;
+import com.example.global.exception.*;
 import com.example.global.jwt.JwtUtil;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -189,6 +186,9 @@ public class AuthService {
     public WithdrawRes selfWithdraw(String loginId,String password) {
         Member member = memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new CustomNotFoundException("회원을 찾을 수 없습니다."));
+        if (member.getStatus() == MemberStatus.WITHDRAWN) {
+            throw new BadRequestException("이미 탈퇴 처리된 계정입니다.");
+        }
         validatePassword(password,member.getPassword());
         member.withdraw();
         refreshTokenRepository.deleteByMemberId(member.getId());
