@@ -74,7 +74,7 @@ public class AdminReviewControllerTest {
                 .param("page","0")
                         .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.status").value("200"))
                 .andExpect(jsonPath("$.message").value("신고된 리뷰 목록 조회가 완료되었습니다."))
                 //신고 5회 미만인 lowReport는 제외되어 총 2개여야 함
                 .andExpect(jsonPath("$.data.totalElements").value(2))
@@ -110,7 +110,7 @@ public class AdminReviewControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.status").value("200"))
                 .andExpect(jsonPath("$.message").value("리뷰가 블라인드 처리되었습니다."))
                 .andDo(print());
 

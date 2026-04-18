@@ -1,10 +1,7 @@
 package com.example.domain.festival.entity;
 
 import com.example.global.entity.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -15,6 +12,16 @@ import java.util.Objects;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
+@Table(name = "festival", indexes = {
+        // 1. 지도 뷰: 상태와 좌표를 묶은 복합 인덱스
+        @Index(name = "idx_festival_status_location", columnList = "status, mapx, mapy"),
+
+        // 2. 리스트 뷰 (지역별): 지역코드와 시작일을 묶은 복합 인덱스
+        @Index(name = "idx_festival_region_date", columnList = "L_DONG_REGN_CD, startDate"),
+
+        // 3. 리스트 뷰 (상태별): 상태와 시작일을 묶은 복합 인덱스
+        @Index(name = "idx_festival_status_date", columnList = "status, start_date")
+})
 public class Festival extends BaseEntity {
 
     @Column(nullable = false, unique = true)
@@ -61,7 +68,6 @@ public class Festival extends BaseEntity {
     @Column(nullable = false)
     private Integer viewCount = 0;
 
-
     @Builder.Default
     @Column(nullable = false)
     private Integer bookMarkCount = 0;
@@ -94,10 +100,9 @@ public class Festival extends BaseEntity {
         // 기본값 세팅
         this.status = FestivalStatus.UPCOMING;
         this.viewCount = 0;
-        this.averageRate = 0.0;
         this.bookMarkCount = 0;
+        this.averageRate = 0.0;
     }
-
     public void updateAverageRating(Double averageRating) {
         this.averageRate = averageRating;
     }
@@ -178,5 +183,17 @@ public class Festival extends BaseEntity {
     ) {
         return Objects.equals(this.overview, overview)
                 && Objects.equals(this.homepageUrl, homepageUrl);
+    }
+
+    //축제 찜 수 1 증가
+    public void increaseBookmarkCount() {
+        this.bookMarkCount++;
+    }
+
+    // 축제 찜 수 1 감소
+    public void decreaseBookmarkCount() {
+        if (this.bookMarkCount > 0) {
+            this.bookMarkCount--;
+        }
     }
 }

@@ -54,6 +54,7 @@ public class GlobalExceptionHandler {
                 .body(new RsData<>("401", e.getMessage(), null));
     }
 
+
     // 403 Forbidden (로그인은 했지만 해당 작업 권한이 없을 때 사용합니다.)
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<RsData<Void>> handleForbiddenException(ForbiddenException e) {
@@ -174,7 +175,7 @@ public class GlobalExceptionHandler {
                 .body(new RsData<>("409", "데이터 무결성 위반이 발생했습니다.", null));
     }
 
-     //처리되지 않은 예외의 최종 방어 (500 Internal Server Error)
+    //처리되지 않은 예외의 최종 방어 (500 Internal Server Error)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<RsData<Void>> handleException(Exception e) {
         e.printStackTrace();

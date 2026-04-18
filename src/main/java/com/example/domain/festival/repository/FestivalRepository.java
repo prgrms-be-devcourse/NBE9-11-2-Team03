@@ -5,6 +5,9 @@ import com.example.domain.festival.entity.Festival;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,4 +23,8 @@ public interface FestivalRepository extends JpaRepository<Festival, Long>, Festi
 
     //반복 단건 조회(findByContentId)로 인한 DB 병목을 줄이기 위한 메서드
     List<Festival> findAllByContentIdIn(List<String> contentIds);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Festival f SET f.viewCount = f.viewCount + 1 WHERE f.id = :id")
+    int incrementViewCount(@Param("id") Long id);
 }

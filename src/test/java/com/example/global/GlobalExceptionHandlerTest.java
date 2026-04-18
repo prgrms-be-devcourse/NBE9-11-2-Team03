@@ -32,7 +32,7 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(429, response.getStatusCode().value());
         assertNotNull(response.getBody());
-        assertEquals("429", response.getBody().resultCode());
+        assertEquals("429", response.getBody().status());
         assertTrue(response.getBody().message().contains("동기화가 중단"));
     }
 
@@ -46,7 +46,7 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(502, response.getStatusCode().value());
         assertNotNull(response.getBody());
-        assertEquals("502", response.getBody().resultCode());
+        assertEquals("502", response.getBody().status());
         assertTrue(response.getBody().message().contains("응답이 불안정"));
     }
 }

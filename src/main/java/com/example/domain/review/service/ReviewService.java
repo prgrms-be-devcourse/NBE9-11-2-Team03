@@ -4,6 +4,7 @@ import com.example.domain.admin.dto.AdminReviewBlindRes;
 import com.example.domain.admin.dto.AdminReviewReportPageRes;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
+import com.example.domain.member.dto.response.MyReviewPageRes;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.review.dto.*;
@@ -198,7 +199,6 @@ public class ReviewService {
         return AdminReviewReportPageRes.from(reviews);
     }
 
-    // 관리자가 특정 리뷰에 접수된 신고 사유 목록을 확인합니다.
     //리뷰를 검토하여 블라인드처리, 신고횟수 초기화하는 함수
     @Transactional
     public AdminReviewBlindRes processReviewAction(Long reviewId, String action) {
@@ -228,6 +228,5 @@ public class ReviewService {
                 review.getReportCount()
         );
     }
-
 }
 

@@ -17,6 +17,7 @@ import java.util.List;
 
 //초기 데이터용 추후 삭제
 @Configuration
+@Profile("!test")
 public class InitDataConfig {
 
     @Bean

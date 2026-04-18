@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -42,7 +43,7 @@ public class AdminMemberControllerTest {
     private ReviewRepository reviewRepository;
     @Autowired
     private FestivalRepository festivalRepository;
-    
+
     @Test
     @DisplayName("관리자 전체회원 목록조회")
     void t1() throws Exception{
@@ -50,7 +51,7 @@ public class AdminMemberControllerTest {
                 .param("page","0")
                         .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.status").value("200"))
                 .andExpect(jsonPath("$.message").value("회원 목록 조회 성공"))
                 .andDo(print());
     }
@@ -66,7 +67,7 @@ public class AdminMemberControllerTest {
                         .param("page", "0")
                         .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.status").value("200"))
                 .andExpect(jsonPath("$.message").value("신고 누적회원 조회 성공"))
                 .andExpect(jsonPath("$.data.content[0].nickname").value("고신고자"))
                 .andExpect(jsonPath("$.data.content[0].reportCount").value(10))
@@ -83,7 +84,7 @@ public class AdminMemberControllerTest {
         mockMvc.perform(patch("/api/admin/members/" + memberId + "/withdraw")
                         .header("Authorization","Bearer dev-temp-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.status").value("200"))
                 .andExpect(jsonPath("$.message").value("회원이 강제 탈퇴 처리되었습니다."))
                 .andDo(print());
 
