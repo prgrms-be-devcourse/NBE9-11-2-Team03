@@ -37,6 +37,10 @@ public class RefreshToken extends BaseEntity {
     @Column(nullable = false)
     private RefreshTokenStatus status = RefreshTokenStatus.ACTIVE;
 
+    // refresh token이 로그아웃 처리된 시간을 저장함.
+    @Column(name = "logged_out_at")
+    private LocalDateTime loggedOutAt;
+
     private RefreshToken(Member member, String token, LocalDateTime expiresAt) {
         this.member = member;
         this.token = token;
@@ -54,12 +58,14 @@ public class RefreshToken extends BaseEntity {
         this.expiresAt = expiresAt;
         // 새 토큰을 저장하면 다시 사용할 수 있는 상태로 바꿈.
         this.status = RefreshTokenStatus.ACTIVE;
+        this.loggedOutAt = null;
     }
 
     // 로그아웃하면 기록은 남기고 token 값과 상태만 바꿈.
     public void logout() {
         this.token = null;
         this.status = RefreshTokenStatus.LOGGED_OUT;
+        this.loggedOutAt = LocalDateTime.now();
     }
 
     // 재발급 전에 사용할 수 있는 refresh token인지 확인함.
