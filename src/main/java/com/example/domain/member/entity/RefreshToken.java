@@ -3,6 +3,8 @@ package com.example.domain.member.entity;
 import com.example.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
@@ -30,10 +32,16 @@ public class RefreshToken extends BaseEntity {
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
+    // refresh token이 재발급에 사용 가능한 상태인지 저장함.
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RefreshTokenStatus status = RefreshTokenStatus.ACTIVE;
+
     private RefreshToken(Member member, String token, LocalDateTime expiresAt) {
         this.member = member;
         this.token = token;
         this.expiresAt = expiresAt;
+        this.status = RefreshTokenStatus.ACTIVE;
     }
 
     public static RefreshToken create(Member member, String token, LocalDateTime expiresAt) {
@@ -44,11 +52,19 @@ public class RefreshToken extends BaseEntity {
     public void update(String token, LocalDateTime expiresAt) {
         this.token = token;
         this.expiresAt = expiresAt;
+        // 새 토큰을 저장하면 다시 사용할 수 있는 상태로 바꿈.
+        this.status = RefreshTokenStatus.ACTIVE;
     }
 
-    // 로그아웃하면 기록은 남기고 실제 refresh token 값만 비움.
+    // 로그아웃하면 기록은 남기고 token 값과 상태만 바꿈.
     public void logout() {
         this.token = null;
+        this.status = RefreshTokenStatus.LOGGED_OUT;
+    }
+
+    // 재발급 전에 사용할 수 있는 refresh token인지 확인함.
+    public boolean isActive() {
+        return status == RefreshTokenStatus.ACTIVE;
     }
 
     public boolean isExpired() {

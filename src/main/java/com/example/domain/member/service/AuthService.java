@@ -14,7 +14,6 @@ import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.member.repository.RefreshTokenRepository;
 import com.example.global.exception.*;
 import com.example.global.jwt.JwtUtil;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -78,6 +77,8 @@ public class AuthService {
         validateRefreshToken(refreshTokenValue);
 
         RefreshToken refreshToken = findRefreshToken(refreshTokenValue);
+        // 로그아웃된 refresh token이면 재발급하지 않음.
+        validateRefreshTokenActive(refreshToken);
         validateRefreshTokenNotExpired(refreshToken);
 
         Member member = refreshToken.getMember();
@@ -174,6 +175,13 @@ public class AuthService {
                 .orElseThrow(() -> new UnauthorizedException("유효하지 않은 refresh token입니다."));
     }
 
+    // 로그아웃 처리된 refresh token은 다시 사용할 수 없음.
+    private void validateRefreshTokenActive(RefreshToken refreshToken) {
+        if (!refreshToken.isActive()) {
+            throw new UnauthorizedException("로그아웃된 refresh token입니다.");
+        }
+    }
+
     // 만료된 refresh token은 삭제하고 재발급을 막음.
     private void validateRefreshTokenNotExpired(RefreshToken refreshToken) {
         if (refreshToken.isExpired()) {
@@ -192,7 +200,9 @@ public class AuthService {
         }
         validatePassword(password,member.getPassword());
         member.withdraw();
-        refreshTokenRepository.deleteByMemberId(member.getId());
+        // 탈퇴 시에도 남아있는 refresh token을 로그아웃 상태로 바꿈.
+        refreshTokenRepository.findByMemberId(member.getId())
+                .ifPresent(RefreshToken::logout);
         return new WithdrawRes(member.getId(),member.getStatus());
     }
 }
