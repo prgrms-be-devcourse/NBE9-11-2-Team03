@@ -40,10 +40,21 @@ public class FestivalAdminController {
                 listResult.getFailedCount()
         );
 
-        String message = (listResult.getChangedContentIds() == null || listResult.getChangedContentIds().isEmpty())
-                ? "축제 목록 동기화가 완료되었고, 상세 보강 대상은 없습니다."
-                : "축제 목록 동기화가 완료되었고, 변경된 축제에 대한 상세 보강이 후속 처리됩니다.";
+        boolean hasFailedItems = listResult.getFailedCount() > 0;
+        boolean hasDetailTargets = listResult.getChangedContentIds() != null
+                && !listResult.getChangedContentIds().isEmpty();
 
+        String message;
+
+        if (!hasFailedItems && !hasDetailTargets) {
+            message = "축제 목록 동기화가 완료되었고, 상세 보강 대상은 없습니다.";
+        } else if (!hasFailedItems) {
+            message = "축제 목록 동기화가 완료되었고, 변경된 축제에 대한 상세 보강이 후속 처리됩니다.";
+        } else if (!hasDetailTargets) {
+            message = "축제 목록 동기화가 부분 완료되었습니다. 일부 축제 목록은 처리되지 않았으며, 상세 보강 대상은 없습니다.";
+        } else {
+            message = "축제 목록 동기화가 부분 완료되었습니다. 일부 축제 목록은 처리되지 않았으며, 변경된 축제에 대한 상세 보강이 후속 처리됩니다.";
+        }
         return RsData.success(message, response);
     }
 
