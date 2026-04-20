@@ -10,6 +10,7 @@ import com.example.domain.member.service.AuthService;
 import com.example.global.response.ApiRes;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 @Tag(name = "Auth", description = "회원 인증 API")
 public class AuthController {
+
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
 
     private final AuthService authService;
 
@@ -64,9 +68,20 @@ public class AuthController {
     // 로그아웃 요청이 오면 refresh token을 사용 불가 상태로 바꿔 재발급을 막음.
     @PostMapping("/logout")
     @Operation(summary = "로그아웃", description = "현재 로그인한 회원의 refresh token을 사용 불가 상태로 변경합니다.")
-    public ResponseEntity<ApiRes<Void>> logout(Authentication authentication) {
-        authService.logout(authentication.getName());
+    public ResponseEntity<ApiRes<Void>> logout(Authentication authentication, HttpServletRequest request) {
+        authService.logout(authentication.getName(), extractAccessToken(request));
 
         return ResponseEntity.ok(new ApiRes<>(200, "로그아웃 성공", null));
+    }
+
+    private String extractAccessToken(HttpServletRequest request) {
+        String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
+
+        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+            return null;
+        }
+
+        // Authorization 헤더에서 실제 access token 값만 꺼냄.
+        return authorizationHeader.substring(BEARER_PREFIX.length());
     }
 }
