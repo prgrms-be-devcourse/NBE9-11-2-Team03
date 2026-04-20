@@ -4,6 +4,7 @@ import com.example.global.exception.*;
 import com.example.global.rsData.RsData;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -194,6 +195,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(new RsData<>("429", "외부 API 호출 한도를 초과로 인해 동기화가 중단되었습니다.", null));
+    }
+
+    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+    public ResponseEntity<RsData<Void>> handleJpaError(InvalidDataAccessApiUsageException e) {
+        // 보안 필터가 가로채기 전에 500 에러와 진짜 이유를 먼저 응답함
+        return ResponseEntity.status(500).body(
+                new RsData<>("500", "서버 쿼리 오류: " + e.getMessage(), null)
+        );
     }
 
     //502 Bad Gateway (외부 API 서버 오류)
