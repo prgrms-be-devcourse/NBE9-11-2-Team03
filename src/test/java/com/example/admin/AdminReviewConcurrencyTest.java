@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -102,5 +103,64 @@ public class AdminReviewConcurrencyTest {
         System.out.println("=========================================");
 
         assertThat(findMember.getReportCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("한 리뷰에 대해 한 명은 BLIND, 한 명은 DISMISS를 동시에 요청할 때 방어 로직 검증")
+    void blindAndDismissConcurrencyTest() throws InterruptedException {
+        // given
+        Member author = new Member("baduser2", "1234", "악플러2", "bad2@test.com", "악성유저2", 0);
+        memberRepository.save(author);
+
+        Festival festival = new Festival("F_002", "동시성축제2", "설명", "주소",
+                LocalDateTime.now(), LocalDateTime.now().plusDays(1), 127.0, 37.0);
+        festivalRepository.save(festival);
+
+        Review targetReview = new Review(author, festival, "어그로 끄는 리뷰 내용", null, 1);
+        for (int i = 0; i < 5; i++) {
+            targetReview.increaseReportCount();
+        }
+        reviewRepository.save(targetReview);
+        Long targetReviewId = targetReview.getId();
+
+        int threadCount = 2;
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch endLatch = new CountDownLatch(threadCount);
+
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger exceptionCount = new AtomicInteger(0);
+
+        // when
+        executorService.submit(() -> {
+            try {
+                startLatch.await();
+                reviewService.processReviewAction(targetReviewId, "BLIND");
+                successCount.incrementAndGet();
+            } catch (Exception e) {
+                exceptionCount.incrementAndGet();
+            } finally {
+                endLatch.countDown();
+            }
+        });
+
+        executorService.submit(() -> {
+            try {
+                startLatch.await();
+                reviewService.processReviewAction(targetReviewId, "DISMISS");
+                successCount.incrementAndGet();
+            } catch (Exception e) {
+                exceptionCount.incrementAndGet();
+            } finally {
+                endLatch.countDown();
+            }
+        });
+
+        startLatch.countDown();
+        endLatch.await();
+
+        // then
+        assertThat(successCount.get()).isEqualTo(1);
+        assertThat(exceptionCount.get()).isEqualTo(1);
     }
 }
