@@ -19,8 +19,10 @@ public class FestivalAdminController {
     private final FestivalSyncService festivalSyncService;
 
     // 메인 관리자 동기화 API
-    // 목록 데이터를 먼저 동기화한 뒤, 변경된 contentId에 대해 상세 보강 후속 처리를 위한 이벤트를 발행함
-    // 본 응답에는 목록 동기화 결과만 포함되며, 상세 보강 완료 결과는 포함되지 않음
+        //1. 목록 동기화 수행 (신규/변경 데이터 반영)
+        //2. 상세 보강 대상 수집 (목록 동기화 변경 대상 + 기존 pending 대상 (실패/미시도)
+        //3. 상세 보강 후속 처리 이벤트 발행
+        // 본 응답에는 목록 동기화 결과만 포함되며, 상세 보강 완료 결과는 포함되지 않으며 후속처리로 수행된다.
     @PostMapping("/sync-and-enrich")
     public RsData<FestivalSyncResponseDto> syncAndEnrichFestivals(
             @RequestParam(defaultValue = "1") int pageNo,
@@ -30,8 +32,12 @@ public class FestivalAdminController {
         FestivalSyncResult listResult =
                 festivalSyncService.syncFestivalList(pageNo, numOfRows, eventStartDate);
 
-        //목록 동기화 결과를 바탕으로 상세 보강 이벤트 발행
-        festivalSyncService.publishSyncCompletedEvent(listResult.getChangedContentIds());
+        // 이번 목록 변경분 + 이전 상세 실패/미시도 대상까지 합쳐 상세 보강 대상으로 수집
+        List<String> targetContentIds =
+                festivalSyncService.collectDetailEnrichTargetContentIds(listResult.getChangedContentIds());
+
+        // 수집된 대상 기준으로 상세 보강 이벤트 발행
+        festivalSyncService.publishSyncCompletedEvent(targetContentIds);
 
         FestivalSyncResponseDto response = new FestivalSyncResponseDto(
                 listResult.getTotalCount(),
@@ -41,20 +47,20 @@ public class FestivalAdminController {
         );
 
         boolean hasFailedItems = listResult.getFailedCount() > 0;
-        boolean hasDetailTargets = listResult.getChangedContentIds() != null
-                && !listResult.getChangedContentIds().isEmpty();
+        boolean hasDetailTargets = targetContentIds != null && !targetContentIds.isEmpty();
 
         String message;
 
         if (!hasFailedItems && !hasDetailTargets) {
             message = "축제 목록 동기화가 완료되었고, 상세 보강 대상은 없습니다.";
         } else if (!hasFailedItems) {
-            message = "축제 목록 동기화가 완료되었고, 변경된 축제에 대한 상세 보강이 후속 처리됩니다.";
+            message = "축제 목록 동기화가 완료되었고, 변경 또는 재처리 대상 축제의 상세 보강이 후속 처리됩니다.";
         } else if (!hasDetailTargets) {
             message = "축제 목록 동기화가 부분 완료되었습니다. 일부 축제 목록은 처리되지 않았으며, 상세 보강 대상은 없습니다.";
         } else {
-            message = "축제 목록 동기화가 부분 완료되었습니다. 일부 축제 목록은 처리되지 않았으며, 변경된 축제에 대한 상세 보강이 후속 처리됩니다.";
+            message = "축제 목록 동기화가 부분 완료되었습니다. 일부 축제 목록은 처리되지 않았으며, 변경 또는 재처리 대상 축제의 상세 보강이 후속 처리됩니다.";
         }
+
         return RsData.success(message, response);
     }
 
@@ -80,15 +86,15 @@ public class FestivalAdminController {
         return RsData.success("축제 목록 동기화가 완료되었습니다.", response);
     }
 
-    //축제 상세정보 전체를 보강한다. (외부 API 호출 제한으로 인해, 상세정보가 보강이 되지 않았을 때, 축제 상세 정보 재동기화 목적)
-    @PostMapping("/enrich-all")
+    //이전 실행에서 실패하거나 미시도된 pending 대상 축제를 기준으로 상세 보강 재처리를 수행한다. (축제 상세 정보 재동기화 목적)
+    @PostMapping("/enrich-pending")
     public RsData<FestivalSyncResponseDto> enrichAllFestivalDetails() {
         List<String> targetContentIds =
                 festivalSyncService.collectDetailEnrichTargetContentIds(List.of());
 
         if (targetContentIds.isEmpty()) {
             return RsData.success(
-                    "상세 보강 대상 축제가 없습니다.",
+                    "상세 보강 재처리 대상 축제가 없습니다.",
                     new FestivalSyncResponseDto(0, 0, 0, 0)
             );
         }
@@ -106,11 +112,11 @@ public class FestivalAdminController {
         String message;
 
         if (result.getUpdatedCount() == 0 && result.getFailedCount() > 0) {
-            message = "축제 상세 보강이 실패했습니다. 외부 API 제한 또는 오류로 인해 처리되지 않았습니다.";
+            message = "축제 상세 보강 재처리가 실패했습니다. 외부 API 제한 또는 오류로 인해 처리되지 않았습니다.";
         } else if (result.getFailedCount() > 0) {
-            message = "축제 상세 보강이 부분 완료되었습니다. 일부 대상은 외부 API 제한 또는 오류로 처리되지 않았습니다.";
+            message = "축제 상세 보강 재처리가 부분 완료되었습니다. 일부 대상은 외부 API 제한 또는 오류로 처리되지 않았습니다.";
         } else {
-            message = "축제 상세 보강이 완료되었습니다.";
+            message = "축제 상세 보강 재처리가 완료되었습니다.";
         }
 
         return RsData.success(message, response);
@@ -120,7 +126,6 @@ public class FestivalAdminController {
     @PostMapping("/{contentId}/enrich")
     public RsData<Void> enrichFestivalByContentId(@PathVariable String contentId) {
         festivalSyncService.enrichFestivalDetailByContentId(contentId);
-
         return RsData.success("특정 축제 상세 정보 보강이 완료되었습니다.");
     }
 }

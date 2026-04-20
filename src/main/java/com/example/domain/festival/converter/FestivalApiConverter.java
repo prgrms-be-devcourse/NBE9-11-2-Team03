@@ -115,7 +115,8 @@ public class FestivalApiConverter {
         );
     }
 
-    //상세 정보 미완료 상태 여부 판단
+    // 상세 미완료 여부는 overview 기준으로만 판단한다.
+    // homepageUrl은 외부 데이터 특성상 null이 정상값일 수 있으므로, 재보강 대상 판단 기준으로 사용하지 않는다.
     public boolean isDetailIncomplete(Festival festival) {
         return "상세 설명 없음".equals(festival.getOverview());
     }

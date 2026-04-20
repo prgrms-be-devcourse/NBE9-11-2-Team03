@@ -6,6 +6,7 @@ import com.example.domain.festival.converter.FestivalApiConverter;
 import com.example.domain.festival.dto.external.FestivalApiItem;
 import com.example.domain.festival.dto.external.FestivalApiResponse;
 import com.example.domain.festival.dto.response.FestivalSyncResult;
+import com.example.domain.festival.entity.DetailSyncPendingReason;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.event.FestivalSyncEventPublisher;
 import com.example.domain.festival.repository.FestivalRepository;
@@ -28,6 +29,7 @@ public class FestivalSyncService {
     private final FestivalApiConverter festivalApiConverter;
     private final FestivalRepository festivalRepository;
     private final FestivalSyncEventPublisher festivalSyncEventPublisher;
+    private final FestivalDetailSyncPendingService pendingService;
 
     // 목록 API 기반 기본 축제 데이터 저장/수정
     public FestivalSyncResult syncFestivalList(int pageNo, int numOfRows, String eventStartDate) {
@@ -141,8 +143,7 @@ public class FestivalSyncService {
         festivalSyncEventPublisher.publishSyncCompleted(changedContentIds);
     }
 
-    //####################삭제 고려#########이제 배열 값 처리x => 이벤트 처리라?##
-    //상세 보강 대상 contentId 수집 (목록 변경 + 상세 미완료)
+    //상세 보강 대상 contentId 수집 (이번 목록 동기화에서 변경된 축제 + 기존 pending 대상)
     @Transactional(readOnly = true)
     public List<String> collectDetailEnrichTargetContentIds(List<String> changedContentIds) {
         Set<String> targetContentIds = new LinkedHashSet<>(changedContentIds);
@@ -150,19 +151,14 @@ public class FestivalSyncService {
         //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
         long start = System.currentTimeMillis();
 
-        List<Festival> festivals = festivalRepository.findAll();
+        // 이전 실행에서 실패/미시도된 상세 보강 대상도 함께 재처리
+        targetContentIds.addAll(pendingService.findAllContentIds());
 
         //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
         long end = System.currentTimeMillis();
-        System.out.println("findAll 조회 시간: " + (end - start) + "ms");
+        System.out.println("pending 조회 시간: " + (end - start) + "ms");
 
-        for (Festival festival : festivals) {
-            if (festivalApiConverter.isDetailIncomplete(festival)) {
-                targetContentIds.add(festival.getContentId());
-            }
-        }
-
-        //상세 Default 확인용////
+        // 상세 보강 대상 조회 로그
         System.out.println("상세 보강 대상 수: " + targetContentIds.size());
         System.out.println("상세 보강 대상 contentIds: " + targetContentIds);
 
@@ -170,10 +166,22 @@ public class FestivalSyncService {
     }
 
 
-    //상세 API 기반 상세 정보 보강 (변경된 contentId 목록만 변경 대상 ex. 초기적재 or 실제 변경)
+    //상세 API 기반 상세 정보 보강 (변경된 contentId 목록만 변경 대상<ex. 초기적재 or 실제 변경> + 이전 실행에서 실패/미시도된 pending 축제)
+    //
     public FestivalSyncResult enrichFestivalDetailsByContentIds(List<String> contentIds) {
         int updatedCount = 0;
         int failedCount = 0;
+
+        long beforePendingCount = pendingService.count();   // 실행 전 pending 건수
+        long beforePendingFailureCount =
+                pendingService.countByReason(DetailSyncPendingReason.RATE_LIMIT)
+                        + pendingService.countByReason(DetailSyncPendingReason.SERVER_ERROR)
+                        + pendingService.countByReason(DetailSyncPendingReason.EXCEPTION);
+        long beforePendingUnprocessedCount =
+                pendingService.countByReason(DetailSyncPendingReason.UNPROCESSED);
+
+
+        int newPendingCount = 0;                            // 이번 실행에서 새로 pending 처리된 건수
 
         //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
         long totalStart = System.currentTimeMillis();
@@ -182,7 +190,9 @@ public class FestivalSyncService {
         //로그 관리용 변수: 중단 사유
         String stopReason = null;
 
-        for (String contentId : contentIds) {
+        for (int i = 0; i < contentIds.size(); i++) {
+            String contentId = contentIds.get(i);
+
             try {
                 Festival festival = festivalRepository.findByContentId(contentId)
                         .orElseThrow(() -> new NoSuchElementException(
@@ -201,19 +211,24 @@ public class FestivalSyncService {
                 long apiEnd = System.currentTimeMillis();
                 System.out.println("상세 API 1건: " + (apiEnd - apiStart) + "ms");
 
-
+                // 응답 구조 이상 또는 resultCode 비정상 → 실패 처리 + pending 저장
                 if (detailResponse == null ||
                         detailResponse.getResponse() == null ||
                         detailResponse.getResponse().getHeader() == null ||
                         !"0000".equals(detailResponse.getResponse().getHeader().getResultCode())) {
                     failedCount++;
+                    pendingService.saveOrUpdate(contentId, DetailSyncPendingReason.EXCEPTION);
+                    newPendingCount++;
                     continue;
                 }
 
+                // body / items 구조 이상 → 실패 처리 + pending 저장
                 if (detailResponse.getResponse().getBody() == null ||
                         detailResponse.getResponse().getBody().getItems() == null ||
                         detailResponse.getResponse().getBody().getItems().getItem() == null) {
                     failedCount++;
+                    pendingService.saveOrUpdate(contentId, DetailSyncPendingReason.EXCEPTION);
+                    newPendingCount++;
                     continue;
                 }
 
@@ -224,6 +239,8 @@ public class FestivalSyncService {
 
                 if (detailItems.isEmpty()) {
                     failedCount++;
+                    pendingService.saveOrUpdate(contentId, DetailSyncPendingReason.EXCEPTION);
+                    newPendingCount++;
                     continue;
                 }
 
@@ -233,66 +250,99 @@ public class FestivalSyncService {
                 if (wasDetailIncomplete || festivalApiConverter.hasDetailChanges(festival, detailItem)) {
                     festivalApiConverter.updateDetailFields(festival, detailItem);
 
+                    // 기존에 상세가 있었던 축제가 실제 변경된 경우만 updatedCount 증가
                     if (!wasDetailIncomplete) {
                         updatedCount++;
                     }
                 }
 
+                // 상세 API 호출 및 응답 검증이 정상 완료되었으므로, 이전 실패 이력이 있어도 pending에서 제거(재처리 대상 X)
+                pendingService.remove(contentId);
+
             } catch (HttpClientErrorException.TooManyRequests e) {
-                // 429 발생 시 전체 상세 보강 즉시 중단 (quota 보호 핵심 로직)
+                // 429 발생 시 quota 보호를 위해 전체 상세 보강 즉시 중단
+                // 단, 현재 실패 대상과 뒤의 미시도 대상은 pending에 저장하여 다음 실행 때 재처리할 수 있도록 한다.
                 failedCount++;
                 stopReason = "429 (quota 초과)";
+
+                // 현재 실패한 대상 저장
+                pendingService.saveOrUpdate(contentId, DetailSyncPendingReason.RATE_LIMIT);
+                newPendingCount++;
+
+                // 아직 시도하지 못한 뒤의 대상들은 미시도 상태로 pending 저장
+                for (int j = i + 1; j < contentIds.size(); j++) {
+                    pendingService.saveOrUpdate(contentIds.get(j), DetailSyncPendingReason.UNPROCESSED);
+                    newPendingCount++;
+                }
+
                 System.out.println("429 발생 → 상세 보강 전체 중단 contentId=" + contentId);
                 break;
 
             } catch (HttpServerErrorException e) {
-                // 5xx 오류 → 해당 contentId만 실패 처리 후 계속 진행
+                // 5xx 오류 → 해당 대상만 실패 처리 후 계속 진행
                 failedCount++;
+                pendingService.saveOrUpdate(contentId, DetailSyncPendingReason.SERVER_ERROR);
+                newPendingCount++;
+
                 if (stopReason == null) {
                     stopReason = "5xx 서버 오류 (" + e.getStatusCode() + ")";
                 }
+
                 System.out.println("외부 API 서버 오류 → 상세 보강 실패 contentId=" + contentId
                         + ", status=" + e.getStatusCode());
 
             } catch (Exception e) {
-                // 기타 예외 → 해당 건만 실패 처리
+                // 기타 예외 → 해당 대상만 실패 처리
                 failedCount++;
+                pendingService.saveOrUpdate(contentId, DetailSyncPendingReason.EXCEPTION);
+                newPendingCount++;
+
                 System.out.println("상세 보강 실패 contentId=" + contentId
                         + ", message=" + e.getMessage());
             }
         }
 
-            //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
-            long totalEnd = System.currentTimeMillis();
+        //성능TEST코드: API 시간 호출 시간 (추후 삭제 가능)
+        long totalEnd = System.currentTimeMillis();
+        long afterPendingCount = pendingService.count();    // 실행 후 남은 pending 건수
 
-            //로그 변수
-            int totalTargetCount = contentIds.size();   // 전체 대상
-            int attemptedCount = apiCallCount;  // 실제 호출
-            int skippedCount = totalTargetCount - attemptedCount;   // 미시도
-            int successCount = updatedCount;    // 성공
-            int failureCount = failedCount; // 실패 (시도했지만 실패한 건)
-            int unprocessedCount = failureCount + skippedCount; // 미처리 (실패 + 미시도)
-            String finalStopReason = (stopReason == null) ? "없음 (정상 처리 또는 일부 실패)" : stopReason; // 중단 사유 (없으면 정상 종료)
+        //로그 변수
+        int totalTargetCount = contentIds.size();   // 전체 대상
+        int attemptedCount = apiCallCount;  // 실제 호출
+        int skippedCount = totalTargetCount - attemptedCount;   // 미시도
+        int successCount = updatedCount;    // 성공
+        int failureCount = failedCount; // 실패 (시도했지만 실패한 건)
+        int unprocessedCount = failureCount + skippedCount; // 미처리 (실패 + 미시도)
+        String finalStopReason = (stopReason == null) ? "없음 (정상 처리 또는 일부 실패)" : stopReason; // 중단 사유 (없으면 정상 종료)
 
-            // 상세 정보 동기화 로그 출력
-            System.out.println("[FestivalSync - Detail]");
-            System.out.println("상세 보강 대상 건수: " + totalTargetCount);
-            System.out.println("상세 보강 성공 건수: " + successCount);
-            System.out.println("상세 보강 실패 건수: " + failureCount);
-            System.out.println("상세 보강 미처리 건수: " + unprocessedCount
+        // 상세 정보 동기화 로그 출력
+        System.out.println("[FestivalSync - Detail]");
+        System.out.println("기존 pending 대상 건수: " + beforePendingCount
+                + " (실패 " + beforePendingFailureCount
+                + ", 미시도 " + beforePendingUnprocessedCount + ")");
+        System.out.println("상세 보강 대상 건수: " + totalTargetCount);
+
+        System.out.println("상세 보강 업데이트 건수: " + updatedCount);
+        System.out.println("상세 보강 실패 건수: " + failureCount);
+        System.out.println("상세 보강 미처리 건수: " + unprocessedCount
                 + " (실패 " + failureCount + " + 미시도 " + skippedCount + ")");
-            System.out.println("상세 API 호출 시도 횟수: " + attemptedCount);
-            System.out.println("상세 API 미시도 횟수: " + skippedCount);
-            System.out.println("중단 사유: " + finalStopReason);
-            System.out.println("상세 보강 총 소요시간: " + (totalEnd - totalStart) + "ms");
 
-            return new FestivalSyncResult(contentIds.size(), 0, updatedCount, failedCount, contentIds);
+        System.out.println("이번 실행 신규 pending 추가 건수: " + newPendingCount);
+        System.out.println("실행 후 남은 pending 건수: " + afterPendingCount);
+
+        System.out.println("상세 API 호출 시도 횟수: " + attemptedCount);
+        System.out.println("상세 API 미시도 횟수: " + skippedCount);
+        System.out.println("중단 사유: " + finalStopReason);
+        System.out.println("상세 보강 총 소요시간: " + (totalEnd - totalStart) + "ms");
+
+        return new FestivalSyncResult(contentIds.size(), 0, updatedCount, failedCount, contentIds);
         }
 
 
 
     //상세 API 기반 상세 정보 보강 (특정 축제 1건에 대해한 상세 정보를 보강한다)
     //특정 데이터에 문제가 발생했을 때 부분 재동기화 용도로 활용, API 호출을 1건만 수행하므로 rate limit(429) 부담이 적음
+// 상세 API 기반 상세 정보 보강 (특정 축제 1건)
     @Transactional
     public void enrichFestivalDetailByContentId(String contentId) {
         Festival festival = festivalRepository.findByContentId(contentId)
@@ -306,12 +356,14 @@ public class FestivalSyncService {
                 response.getResponse() == null ||
                 response.getResponse().getHeader() == null ||
                 !"0000".equals(response.getResponse().getHeader().getResultCode())) {
+            pendingService.saveOrUpdate(contentId, DetailSyncPendingReason.EXCEPTION);
             return;
         }
 
         if (response.getResponse().getBody() == null ||
                 response.getResponse().getBody().getItems() == null ||
                 response.getResponse().getBody().getItems().getItem() == null) {
+            pendingService.saveOrUpdate(contentId, DetailSyncPendingReason.EXCEPTION);
             return;
         }
 
@@ -321,6 +373,7 @@ public class FestivalSyncService {
                 .getItem();
 
         if (items.isEmpty()) {
+            pendingService.saveOrUpdate(contentId, DetailSyncPendingReason.EXCEPTION);
             return;
         }
 
@@ -329,6 +382,9 @@ public class FestivalSyncService {
         if (festivalApiConverter.hasDetailChanges(festival, detailItem)) {
             festivalApiConverter.updateDetailFields(festival, detailItem);
         }
+
+        // 1건 재동기화가 정상 종료되었으므로 pending 제거
+        pendingService.remove(contentId);
     }
 }
 

@@ -4,6 +4,7 @@ import com.example.domain.festival.client.FestivalApiClient;
 import com.example.domain.festival.converter.FestivalApiConverter;
 import com.example.domain.festival.dto.external.*;
 import com.example.domain.festival.dto.response.FestivalSyncResult;
+import com.example.domain.festival.entity.DetailSyncPendingReason;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.entity.FestivalStatus;
 import com.example.domain.festival.event.FestivalSyncEventPublisher;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
@@ -31,13 +33,15 @@ class FestivalSyncServiceTest {
     private final FestivalApiConverter festivalApiConverter = mock(FestivalApiConverter.class);
     private final FestivalRepository festivalRepository = mock(FestivalRepository.class);
     private final FestivalSyncEventPublisher festivalSyncEventPublisher = mock(FestivalSyncEventPublisher.class);
+    private final FestivalDetailSyncPendingService pendingService = mock(FestivalDetailSyncPendingService.class);
 
     private final FestivalSyncService festivalSyncService =
             new FestivalSyncService(
                     festivalApiClient,
                     festivalApiConverter,
                     festivalRepository,
-                    festivalSyncEventPublisher
+                    festivalSyncEventPublisher,
+                    pendingService
             );
 
     @Nested
@@ -77,9 +81,10 @@ class FestivalSyncServiceTest {
             assertThat(result.getCreatedCount()).isEqualTo(1);
             assertThat(result.getUpdatedCount()).isEqualTo(0);
             assertThat(result.getFailedCount()).isEqualTo(0);
+            assertThat(result.getChangedContentIds()).containsExactly("1001");
 
-            verify(festivalRepository, times(1)).save(newFestival);
-            verify(festivalApiConverter, times(1)).toEntityFromListItem(item);
+            verify(festivalRepository).save(newFestival);
+            verify(festivalApiConverter).toEntityFromListItem(item);
         }
 
         @Test
@@ -116,9 +121,9 @@ class FestivalSyncServiceTest {
             assertThat(result.getCreatedCount()).isEqualTo(0);
             assertThat(result.getUpdatedCount()).isEqualTo(1);
             assertThat(result.getFailedCount()).isEqualTo(0);
+            assertThat(result.getChangedContentIds()).containsExactly("1001");
 
-            verify(festivalApiConverter, times(1)).hasListChanges(existingFestival, item);
-            verify(festivalApiConverter, times(1)).updateFromListItem(existingFestival, item);
+            verify(festivalApiConverter).updateFromListItem(existingFestival, item);
             verify(festivalRepository, never()).save(any(Festival.class));
         }
 
@@ -156,8 +161,8 @@ class FestivalSyncServiceTest {
             assertThat(result.getCreatedCount()).isEqualTo(0);
             assertThat(result.getUpdatedCount()).isEqualTo(0);
             assertThat(result.getFailedCount()).isEqualTo(0);
+            assertThat(result.getChangedContentIds()).isEmpty();
 
-            verify(festivalApiConverter, times(1)).hasListChanges(existingFestival, item);
             verify(festivalApiConverter, never()).updateFromListItem(any(), any());
             verify(festivalRepository, never()).save(any(Festival.class));
         }
@@ -206,7 +211,7 @@ class FestivalSyncServiceTest {
             assertThat(result.getFailedCount()).isEqualTo(1);
             assertThat(result.getChangedContentIds()).containsExactly("1001");
 
-            verify(festivalRepository, times(1)).save(newFestival);
+            verify(festivalRepository).save(newFestival);
         }
     }
 
@@ -221,8 +226,7 @@ class FestivalSyncServiceTest {
 
             festivalSyncService.publishSyncCompletedEvent(changedContentIds);
 
-            verify(festivalSyncEventPublisher, times(1))
-                    .publishSyncCompleted(changedContentIds);
+            verify(festivalSyncEventPublisher).publishSyncCompleted(changedContentIds);
         }
 
         @Test
@@ -230,8 +234,24 @@ class FestivalSyncServiceTest {
         void publishSyncCompletedEvent_empty_test() {
             festivalSyncService.publishSyncCompletedEvent(List.of());
 
-            verify(festivalSyncEventPublisher, never())
-                    .publishSyncCompleted(anyList());
+            verify(festivalSyncEventPublisher, never()).publishSyncCompleted(anyList());
+        }
+    }
+
+    @Nested
+    @DisplayName("상세 보강 대상 수집 테스트")
+    class CollectDetailEnrichTargetContentIdsTest {
+
+        @Test
+        @DisplayName("목록 변경 대상과 pending 대상을 중복 없이 합쳐 반환한다")
+        void collectDetailEnrichTargetContentIds_merge_changed_and_pending_test() {
+            when(pendingService.findAllContentIds()).thenReturn(List.of("1002", "1003"));
+
+            List<String> result =
+                    festivalSyncService.collectDetailEnrichTargetContentIds(List.of("1001", "1002"));
+
+            assertThat(result).containsExactly("1001", "1002", "1003");
+            verify(pendingService).findAllContentIds();
         }
     }
 
@@ -240,7 +260,7 @@ class FestivalSyncServiceTest {
     class EnrichFestivalDetailsByContentIdsTest {
 
         @Test
-        @DisplayName("상세 API 성공 응답이고 상세 정보가 변경된 경우 보강한다")
+        @DisplayName("상세 API 성공 응답이고 상세 정보가 변경된 경우 보강 후 pending 제거")
         void enrichFestivalDetailsByContentIds_success_test() throws Exception {
             Festival festival = Festival.builder()
                     .contentId("694576")
@@ -278,8 +298,41 @@ class FestivalSyncServiceTest {
             assertThat(result.getUpdatedCount()).isEqualTo(1);
             assertThat(result.getFailedCount()).isEqualTo(0);
 
-            verify(festivalApiConverter, times(1)).hasDetailChanges(festival, detailItem);
-            verify(festivalApiConverter, times(1)).updateDetailFields(festival, detailItem);
+            verify(festivalApiConverter).updateDetailFields(festival, detailItem);
+            verify(pendingService).remove("694576");
+        }
+
+        @Test
+        @DisplayName("상세 API 성공이지만 변경이 없더라도 pending 제거")
+        void enrichFestivalDetailsByContentIds_success_no_change_remove_pending_test() throws Exception {
+            Festival festival = Festival.builder()
+                    .contentId("1001")
+                    .title("축제1")
+                    .overview("기존 상세 설명")
+                    .address("서울")
+                    .startDate(LocalDateTime.now())
+                    .endDate(LocalDateTime.now().plusDays(1))
+                    .mapX(127.0)
+                    .mapY(37.0)
+                    .status(FestivalStatus.UPCOMING)
+                    .build();
+
+            FestivalApiItem detailItem = createApiItem("1001", "축제1");
+            FestivalApiResponse detailResponse = createResponse(List.of(detailItem));
+
+            when(festivalRepository.findByContentId("1001")).thenReturn(Optional.of(festival));
+            when(festivalApiClient.fetchFestivalDetail("1001")).thenReturn(detailResponse);
+            when(festivalApiConverter.isDetailIncomplete(festival)).thenReturn(false);
+            when(festivalApiConverter.hasDetailChanges(festival, detailItem)).thenReturn(false);
+
+            FestivalSyncResult result =
+                    festivalSyncService.enrichFestivalDetailsByContentIds(List.of("1001"));
+
+            assertThat(result.getUpdatedCount()).isEqualTo(0);
+            assertThat(result.getFailedCount()).isEqualTo(0);
+
+            verify(festivalApiConverter, never()).updateDetailFields(any(), any());
+            verify(pendingService).remove("1001");
         }
     }
 
@@ -288,7 +341,7 @@ class FestivalSyncServiceTest {
     class EnrichFestivalDetailsFailureTest {
 
         @Test
-        @DisplayName("상세 보강 중 429가 발생하면 즉시 중단한다")
+        @DisplayName("상세 보강 중 429가 발생하면 현재 건과 뒤 미시도 건을 pending에 저장하고 즉시 중단한다")
         void enrichFestivalDetailsByContentIds_429_break_test() {
             Festival festival1 = Festival.builder()
                     .contentId("1001")
@@ -334,12 +387,14 @@ class FestivalSyncServiceTest {
             assertThat(result.getUpdatedCount()).isEqualTo(0);
             assertThat(result.getFailedCount()).isEqualTo(1);
 
-            verify(festivalApiClient, times(1)).fetchFestivalDetail("1001");
+            verify(festivalApiClient).fetchFestivalDetail("1001");
             verify(festivalApiClient, never()).fetchFestivalDetail("1002");
+            verify(pendingService).saveOrUpdate("1001", DetailSyncPendingReason.RATE_LIMIT);
+            verify(pendingService).saveOrUpdate("1002", DetailSyncPendingReason.UNPROCESSED);
         }
 
         @Test
-        @DisplayName("상세 보강 중 5xx가 발생하면 해당 건만 실패 처리하고 다음 건으로 진행한다")
+        @DisplayName("상세 보강 중 5xx가 발생하면 해당 건을 pending에 저장하고 다음 건으로 진행한다")
         void enrichFestivalDetailsByContentIds_5xx_continue_test() throws Exception {
             Festival festival1 = Festival.builder()
                     .contentId("1001")
@@ -389,9 +444,38 @@ class FestivalSyncServiceTest {
             assertThat(result.getUpdatedCount()).isEqualTo(1);
             assertThat(result.getFailedCount()).isEqualTo(1);
 
-            verify(festivalApiClient, times(1)).fetchFestivalDetail("1001");
-            verify(festivalApiClient, times(1)).fetchFestivalDetail("1002");
-            verify(festivalApiConverter, times(1)).updateDetailFields(festival2, detailItem);
+            verify(pendingService).saveOrUpdate("1001", DetailSyncPendingReason.SERVER_ERROR);
+            verify(festivalApiConverter).updateDetailFields(festival2, detailItem);
+            verify(pendingService).remove("1002");
+        }
+
+        @Test
+        @DisplayName("상세 응답 구조가 비정상이면 pending에 저장한다")
+        void enrichFestivalDetailsByContentIds_invalid_response_save_pending_test() {
+            Festival festival = Festival.builder()
+                    .contentId("1001")
+                    .title("축제1")
+                    .overview("기존 상세 설명")
+                    .address("서울")
+                    .startDate(LocalDateTime.now())
+                    .endDate(LocalDateTime.now().plusDays(1))
+                    .mapX(127.0)
+                    .mapY(37.0)
+                    .status(FestivalStatus.UPCOMING)
+                    .build();
+
+            when(festivalRepository.findByContentId("1001")).thenReturn(Optional.of(festival));
+            when(festivalApiClient.fetchFestivalDetail("1001")).thenReturn(null);
+            when(festivalApiConverter.isDetailIncomplete(festival)).thenReturn(false);
+
+            FestivalSyncResult result =
+                    festivalSyncService.enrichFestivalDetailsByContentIds(List.of("1001"));
+
+            assertThat(result.getUpdatedCount()).isEqualTo(0);
+            assertThat(result.getFailedCount()).isEqualTo(1);
+
+            verify(pendingService).saveOrUpdate("1001", DetailSyncPendingReason.EXCEPTION);
+            verify(pendingService, never()).remove("1001");
         }
     }
 
