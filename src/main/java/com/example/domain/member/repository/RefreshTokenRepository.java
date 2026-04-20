@@ -10,7 +10,4 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     Optional<RefreshToken> findByToken(String token);
 
     Optional<RefreshToken> findByMemberId(Long memberId);
-
-    // 로그아웃 시 해당 회원의 refresh token을 삭제함.
-    void deleteByMemberId(Long memberId);
 }
