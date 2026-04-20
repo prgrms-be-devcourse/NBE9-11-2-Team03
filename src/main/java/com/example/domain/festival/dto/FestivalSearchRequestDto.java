@@ -3,7 +3,7 @@ package com.example.domain.festival.dto;
 import com.example.domain.festival.entity.FestivalStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-public record FestivalSearchDto(
+public record FestivalSearchRequestDto(
         @Schema(description = "지역 코드 (예: 11)", nullable = true)
         String regionCode,
 
@@ -25,8 +25,8 @@ public record FestivalSearchDto(
         @Schema(description = "검색 반경(km)", nullable = true)
         Double radiusKm
 ) {
-    public FestivalSearchDto applyMapDefaults() {
-        return new FestivalSearchDto(
+    public FestivalSearchRequestDto applyMapDefaults() {
+        return new FestivalSearchRequestDto(
                 this.regionCode,
                 this.status,
                 this.month,

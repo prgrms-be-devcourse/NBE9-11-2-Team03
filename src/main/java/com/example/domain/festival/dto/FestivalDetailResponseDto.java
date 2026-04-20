@@ -4,27 +4,37 @@ import com.example.domain.festival.entity.Festival;
 
 import java.time.LocalDate;
 
-public record FestivalResponseDto(
+public record FestivalDetailResponseDto(
         Long id,
         String title,
-        String thumbnail,
+        String firstImageUrl,
         LocalDate startDate,
         LocalDate endDate,
         String address,
+        String contactNumber,
+        String homepageUrl,
         String status,
+        String overview,
+        Double mapX,
+        Double mapY,
         Integer viewCount,
-        Integer likeCount,
+        Integer bookMarkCount,
         Double averageRate
 ) {
-    public static FestivalResponseDto from(Festival festival) {
-        return new FestivalResponseDto(
+    public static FestivalDetailResponseDto from(Festival festival) {
+        return new FestivalDetailResponseDto(
                 festival.getId(),
                 festival.getTitle(),
-                festival.getThumbnailUrl(),
+                festival.getFirstImageUrl(),
                 festival.getStartDate().toLocalDate(),
                 festival.getEndDate().toLocalDate(),
                 festival.getAddress(),
+                festival.getContactNumber(),
+                festival.getHomepageUrl(),
                 festival.getStatus().name(),
+                festival.getOverview(),
+                festival.getMapX(),
+                festival.getMapY(),
                 festival.getViewCount(),
                 festival.getBookMarkCount(),
                 festival.getAverageRate()

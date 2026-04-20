@@ -2,14 +2,14 @@ package com.example.domain.festival.dto;
 
 import com.example.domain.festival.entity.Festival;
 
-public record FestivalMarkerDto(
+public record FestivalMarkerResponseDto(
         Long id,
         String title,
         Double mapX,
         Double mapY
 ) {
-    public static FestivalMarkerDto from(Festival festival) {
-        return new FestivalMarkerDto(
+    public static FestivalMarkerResponseDto from(Festival festival) {
+        return new FestivalMarkerResponseDto(
                 festival.getId(),
                 festival.getTitle(),
                 festival.getMapX(),
