@@ -1,50 +1,158 @@
 package com.example.domain.festival.controller;
 
-import com.example.domain.festival.service.FestivalSyncService;
+import com.example.domain.festival.dto.response.FestivalSyncResponseDto;
 import com.example.domain.festival.dto.response.FestivalSyncResult;
+import com.example.domain.festival.dto.response.FestivalSyncStatusResponseDto;
+import com.example.domain.festival.service.FestivalDetailSyncPendingService;
+import com.example.domain.festival.service.FestivalSyncService;
 import com.example.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-//@PreAuthorize("hasRole('ADMIN')") //TODOS: 스프링 시큐리티 적용 후, 설정 적용하기
+import java.util.List;
+import java.util.Map;
+
+@PreAuthorize("hasRole('ADMIN')")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/festivals")
 public class FestivalAdminController {
 
     private final FestivalSyncService festivalSyncService;
+    private final FestivalDetailSyncPendingService pendingService;
 
-    //축제 목록 데이터를 수동 동기화한다. (공공 API 목록 조회 -> contentId 기준으로 insert / update 수행)
-    @PostMapping("/sync")
-    public RsData<FestivalSyncResult> syncFestivals(
+    // 메인 관리자 동기화 API
+        //1. 목록 동기화 수행 (신규/변경 데이터 반영)
+        //2. 상세 보강 대상 수집 (목록 동기화 변경 대상 + 기존 pending 대상 (실패/미시도)
+        //3. 상세 보강 후속 처리 이벤트 발행
+        // 본 응답에는 목록 동기화 결과만 포함되며, 상세 보강 완료 결과는 포함되지 않으며 후속처리로 수행된다.
+    @PostMapping("/sync-and-enrich")
+    public RsData<FestivalSyncResponseDto> syncAndEnrichFestivals(
             @RequestParam(defaultValue = "1") int pageNo,
-            @RequestParam(defaultValue = "100") int numOfRows,
+            @RequestParam(defaultValue = "200") int numOfRows,
+            @RequestParam(defaultValue = "20260101") String eventStartDate
+    ) {
+        FestivalSyncResult listResult =
+                festivalSyncService.syncFestivalList(pageNo, numOfRows, eventStartDate);
+
+        // 이번 목록 변경분 + 이전 상세 실패/미시도 대상까지 합쳐 상세 보강 대상으로 수집
+        List<String> targetContentIds =
+                festivalSyncService.collectDetailEnrichTargetContentIds(listResult.getChangedContentIds());
+
+        // 수집된 대상 기준으로 상세 보강 이벤트 발행
+        festivalSyncService.publishSyncCompletedEvent(targetContentIds);
+
+        FestivalSyncResponseDto response = new FestivalSyncResponseDto(
+                listResult.getTotalCount(),
+                listResult.getCreatedCount(),
+                listResult.getUpdatedCount(),
+                listResult.getFailedCount()
+        );
+
+        boolean hasFailedItems = listResult.getFailedCount() > 0;
+        boolean hasDetailTargets = targetContentIds != null && !targetContentIds.isEmpty();
+
+        String message;
+
+        if (!hasFailedItems && !hasDetailTargets) {
+            message = "축제 목록 동기화가 완료되었고, 상세 보강 대상은 없습니다.";
+        } else if (!hasFailedItems) {
+            message = "축제 목록 동기화가 완료되었고, 변경 또는 재처리 대상 축제의 상세 보강이 후속 처리됩니다.";
+        } else if (!hasDetailTargets) {
+            message = "축제 목록 동기화가 부분 완료되었습니다. 일부 축제 목록은 처리되지 않았으며, 상세 보강 대상은 없습니다.";
+        } else {
+            message = "축제 목록 동기화가 부분 완료되었습니다. 일부 축제 목록은 처리되지 않았으며, 변경 또는 재처리 대상 축제의 상세 보강이 후속 처리됩니다.";
+        }
+
+        return RsData.success(message, response);
+    }
+
+    //축제 목록 데이터를 수동 동기화한다. (공공 API 목록 조회 -> contentId 기준으로 insert / 변경사항 확인 후, update 수행)
+    //목록만 동기화하는 보조/점검용
+    //디버깅용(목록 동기화 OR 상세 보강 문제인지 확인)
+    @PostMapping("/sync-list")
+    public RsData<FestivalSyncResponseDto> syncFestivals(
+            @RequestParam(defaultValue = "1") int pageNo,
+            @RequestParam(defaultValue = "10") int numOfRows,
             @RequestParam(defaultValue = "20260101") String eventStartDate
     ) {
         FestivalSyncResult result =
                 festivalSyncService.syncFestivalList(pageNo, numOfRows, eventStartDate);
 
-        return RsData.success("축제 목록 동기화가 완료되었습니다.", result);
+        FestivalSyncResponseDto response = new FestivalSyncResponseDto(
+                result.getTotalCount(),
+                result.getCreatedCount(),
+                result.getUpdatedCount(),
+                result.getFailedCount()
+        );
+
+        return RsData.success("축제 목록 동기화가 완료되었습니다.", response);
     }
 
-    //DB에 저장된 모든 축제의 상세 정보를 수동 보강한다 (DB 전체 축제 조회 -> 상세 API 호출 ->  상세 필드 갱신(overview, homepage, contactNumber)
-    @PostMapping("/enrich")
-    public RsData<FestivalSyncResult> enrichFestivals() {
+    //이전 실행에서 실패하거나 미시도된 pending 대상 축제를 기준으로 상세 보강 재처리를 수행한다. (축제 상세 정보 재동기화 목적)
+    @PostMapping("/enrich-pending")
+    public RsData<FestivalSyncResponseDto> enrichAllFestivalDetails() {
+        List<String> targetContentIds =
+                festivalSyncService.collectDetailEnrichTargetContentIds(List.of());
+
+        if (targetContentIds.isEmpty()) {
+            return RsData.success(
+                    "상세 보강 재처리 대상 축제가 없습니다.",
+                    new FestivalSyncResponseDto(0, 0, 0, 0)
+            );
+        }
+
         FestivalSyncResult result =
-                festivalSyncService.enrichFestivalDetails();
+                festivalSyncService.enrichFestivalDetailsByContentIds(targetContentIds);
 
-        //전체 성공이 아니라 일부 실패가 존재할 수 있으므로 메시지 분기
-        String message = result.getFailedCount() > 0
-                ? "전체 축제 상세 정보 보강이 부분 완료되었습니다."
-                : "전체 축제 상세 정보 보강이 완료되었습니다.";
+        FestivalSyncResponseDto response = new FestivalSyncResponseDto(
+                result.getTotalCount(),
+                result.getCreatedCount(),
+                result.getUpdatedCount(),
+                result.getFailedCount()
+        );
 
-        return RsData.success(message, result);    }
+        String message;
+
+        if (result.getUpdatedCount() == 0 && result.getFailedCount() > 0) {
+            message = "축제 상세 보강 재처리가 실패했습니다. 외부 API 제한 또는 오류로 인해 처리되지 않았습니다.";
+        } else if (result.getFailedCount() > 0) {
+            message = "축제 상세 보강 재처리가 부분 완료되었습니다. 일부 대상은 외부 API 제한 또는 오류로 처리되지 않았습니다.";
+        } else {
+            message = "축제 상세 보강 재처리가 완료되었습니다.";
+        }
+
+        return RsData.success(message, response);
+    }
 
     //특정 축제 1건만 상세 보강한다.(특정 데이터 재동기화 , 디버깅, 전체 보강 전 검증 목적)
     @PostMapping("/{contentId}/enrich")
     public RsData<Void> enrichFestivalByContentId(@PathVariable String contentId) {
         festivalSyncService.enrichFestivalDetailByContentId(contentId);
-
         return RsData.success("특정 축제 상세 정보 보강이 완료되었습니다.");
+    }
+
+    // 현재 상세 동기화 상태 조회 API
+    @GetMapping("/sync-status")
+    public RsData<FestivalSyncStatusResponseDto> getFestivalSyncStatus() {
+        FestivalSyncStatusResponseDto response = pendingService.getSyncStatus();
+
+        Map<String, Long> breakdown = response.getPendingBreakdown();
+
+        String message;
+
+        if (!response.isNeedsRetry()) {
+            message = "축제 동기화가 정상 상태입니다. 재처리할 상세 대상이 없습니다.";
+        } else if (breakdown.getOrDefault("RATE_LIMIT", 0L) > 0) {
+            message = "API 호출 제한으로 인해 상세 동기화 재처리가 필요합니다.";
+        } else if (breakdown.getOrDefault("SERVER_ERROR", 0L) > 0
+                || breakdown.getOrDefault("EXCEPTION", 0L) > 0) {
+            message = "상세 동기화 실패 대상이 존재합니다. 재처리가 필요합니다.";
+        } else {
+            message = "미처리된 상세 동기화 대상이 존재합니다. 재처리가 필요합니다.";
+        }
+
+        return RsData.success(message, response);
     }
 }
