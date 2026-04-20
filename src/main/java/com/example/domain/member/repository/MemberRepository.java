@@ -5,6 +5,9 @@ import com.example.domain.member.entity.MemberStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
@@ -32,4 +35,10 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     // 회원가입 시 nickname 중복 여부를 확인한다.
     boolean existsByNickname(String nickname);
+
+    //DB에서 직접 신고횟수를 1 증가시키는 로직
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Member m SET m.reportCount = m.reportCount + 1 WHERE m.id = :id")
+    void incrementReportCount(@Param("id") Long id);
+
 }
