@@ -1,6 +1,6 @@
 package com.example.domain.festival.repository;
 
-import com.example.domain.festival.dto.FestivalSearchDto;
+import com.example.domain.festival.dto.FestivalSearchRequestDto;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.entity.FestivalStatus;
 import com.querydsl.core.types.Order;
@@ -31,7 +31,7 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<Festival> searchFestivals(FestivalSearchDto searchDto, Pageable pageable) {
+    public Page<Festival> searchFestivals(FestivalSearchRequestDto searchDto, Pageable pageable) {
 
         List<Festival> content = queryFactory
                 .selectFrom(festival)
@@ -62,14 +62,11 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
     }
 
     @Override
-    public List<Festival> findNearbyFestivals(FestivalSearchDto searchDto) {
+    public List<Festival> findNearbyFestivals(FestivalSearchRequestDto searchDto) {
         return queryFactory
                 .selectFrom(festival)
                 .where(
-//                        regionCodeEquals(searchDto.regionCode()),
-//                        statusEquals(searchDto.status()),
-//                        monthEquals(searchDto.month()),
-//                        keywordContains(searchDto.keyword()),
+                        festival.status.in(FestivalStatus.ONGOING, FestivalStatus.UPCOMING),
                         nearBy(searchDto.mapX(), searchDto.mapY(), searchDto.radiusKm())
                 )
                 .fetch();

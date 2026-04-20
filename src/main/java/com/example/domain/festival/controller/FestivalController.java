@@ -1,8 +1,6 @@
 package com.example.domain.festival.controller;
 
-import com.example.domain.festival.dto.FestivalMarkerDto;
-import com.example.domain.festival.dto.FestivalResponseDto;
-import com.example.domain.festival.dto.FestivalSearchDto;
+import com.example.domain.festival.dto.*;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.service.FestivalService;
 import com.example.global.rsData.RsData;
@@ -25,12 +23,13 @@ public class FestivalController {
 
     private final FestivalService festivalService;
 
+    //목록조회
     @GetMapping
-    public ResponseEntity<RsData<Map<String, Object>>> searchFestivals(
-            @ParameterObject @ModelAttribute FestivalSearchDto searchDto,
+    public ResponseEntity<RsData<FestivalPageResponseDto<FestivalListResponseDto>>> searchFestivals(
+            @ParameterObject @ModelAttribute FestivalSearchRequestDto searchDto,
             @ParameterObject @PageableDefault(size = 10) Pageable pageable){
 
-        Page<FestivalResponseDto> dtopage = festivalService.searchFestivals(searchDto, pageable).map(FestivalResponseDto::from);
+        Page<FestivalListResponseDto> dtopage = festivalService.searchFestivals(searchDto, pageable).map(FestivalListResponseDto::from);
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("content", dtopage.getContent());
@@ -42,41 +41,39 @@ public class FestivalController {
                 .toList();
         data.put("sort", sortList);
 
-        //pagedto 추가하면 변경
-        data.put("page",dtopage.getNumber());
-        data.put("size", dtopage.getSize());
-        data.put("totalElements", dtopage.getTotalElements());
-        data.put("totalPages", dtopage.getTotalPages());
+        Page<FestivalListResponseDto> responseDtoPage = festivalService.searchFestivals(searchDto, pageable)
+                .map(FestivalListResponseDto::from);
 
-        RsData<Map<String,Object>> rsData = new RsData<>("200", "축제 목록 조회 성공", data);
+        FestivalPageResponseDto<FestivalListResponseDto> pageData = FestivalPageResponseDto.from(dtopage);
 
-        return ResponseEntity.ok(rsData);
+        return ResponseEntity.ok(RsData.success("축제 목록 조회 성공", pageData));
 
     }
 
+    //상세조회
     @GetMapping("/{id}")
-    public ResponseEntity<RsData<FestivalResponseDto>> getFestivalDetail(
+    public ResponseEntity<RsData<FestivalDetailResponseDto>> getFestivalDetail(
             @PathVariable Long id
     ){
         Festival festival = festivalService.getFestival(id);
-        FestivalResponseDto responseDto = FestivalResponseDto.from(festival);
+        FestivalDetailResponseDto responseDto = FestivalDetailResponseDto.from(festival);
 
-        RsData<FestivalResponseDto> rsData = new RsData<>("200", "축제 상세 조회 성공", responseDto);
+        RsData<FestivalDetailResponseDto> rsData = new RsData<>("200", "축제 상세 조회 성공", responseDto);
         return ResponseEntity.ok(rsData);
     }
 
     @GetMapping("/nearby")
-    public ResponseEntity<RsData<List<FestivalMarkerDto>>> getNearbyFestivals(
-            @ParameterObject @ModelAttribute FestivalSearchDto searchDto
+    public ResponseEntity<RsData<List<FestivalMarkerResponseDto>>> getNearbyFestivals(
+            @ParameterObject @ModelAttribute FestivalSearchRequestDto searchDto
     ){
-        FestivalSearchDto mapSearchDto = searchDto.applyMapDefaults();
+        FestivalSearchRequestDto mapSearchDto = searchDto.applyMapDefaults();
         List<Festival> festivals = festivalService.getNearbyMarkers(mapSearchDto);
 
-        List<FestivalMarkerDto> markerDtoList = festivals.stream()
-                .map(FestivalMarkerDto::from)
+        List<FestivalMarkerResponseDto> markerDtoList = festivals.stream()
+                .map(FestivalMarkerResponseDto::from)
                 .toList();
 
-        RsData<List<FestivalMarkerDto>> rsData = new RsData<>("200", "주변 축제 조회 성공", markerDtoList);
+        RsData<List<FestivalMarkerResponseDto>> rsData = new RsData<>("200", "주변 축제 조회 성공", markerDtoList);
         return ResponseEntity.ok(rsData);
     }
 }

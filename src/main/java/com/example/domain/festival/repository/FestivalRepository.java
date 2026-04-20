@@ -1,6 +1,6 @@
 package com.example.domain.festival.repository;
 
-import com.example.domain.festival.dto.FestivalSearchDto;
+import com.example.domain.festival.dto.FestivalSearchRequestDto;
 import com.example.domain.festival.entity.Festival;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,7 +18,7 @@ public interface FestivalRepository extends JpaRepository<Festival, Long>, Festi
     boolean existsByContentId(String contentId);
 
     // 축제 검색용
-    Page<Festival> searchFestivals(FestivalSearchDto searchDto, Pageable pageable);
+    Page<Festival> searchFestivals(FestivalSearchRequestDto searchDto, Pageable pageable);
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Festival f SET f.viewCount = f.viewCount + 1 WHERE f.id = :id")
