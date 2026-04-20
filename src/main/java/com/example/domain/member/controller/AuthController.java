@@ -61,9 +61,9 @@ public class AuthController {
         return ResponseEntity.ok(new ApiRes<>(200, "토큰 재발급 성공", response));
     }
 
-    // 로그아웃 요청이 오면 현재 로그인한 회원의 refresh token을 삭제함.
+    // 로그아웃 요청이 오면 refresh token을 사용 불가 상태로 바꿔 재발급을 막음.
     @PostMapping("/logout")
-    @Operation(summary = "로그아웃", description = "현재 로그인한 회원의 refresh token을 삭제합니다.")
+    @Operation(summary = "로그아웃", description = "현재 로그인한 회원의 refresh token을 사용 불가 상태로 변경합니다.")
     public ResponseEntity<ApiRes<Void>> logout(Authentication authentication) {
         authService.logout(authentication.getName());
 
