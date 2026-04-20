@@ -1,19 +1,17 @@
 package com.example.domain.festival.controller;
 
+import com.example.domain.festival.dto.FestivalMarkerDto;
 import com.example.domain.festival.dto.FestivalResponseDto;
 import com.example.domain.festival.dto.FestivalSearchDto;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.service.FestivalService;
 import com.example.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
@@ -29,8 +27,8 @@ public class FestivalController {
 
     @GetMapping
     public ResponseEntity<RsData<Map<String, Object>>> searchFestivals(
-            @ModelAttribute FestivalSearchDto searchDto,
-            @PageableDefault(size = 10) Pageable pageable){
+            @ParameterObject @ModelAttribute FestivalSearchDto searchDto,
+            @ParameterObject @PageableDefault(size = 10) Pageable pageable){
 
         Page<FestivalResponseDto> dtopage = festivalService.searchFestivals(searchDto, pageable).map(FestivalResponseDto::from);
 
@@ -64,7 +62,21 @@ public class FestivalController {
         FestivalResponseDto responseDto = FestivalResponseDto.from(festival);
 
         RsData<FestivalResponseDto> rsData = new RsData<>("200", "축제 상세 조회 성공", responseDto);
+        return ResponseEntity.ok(rsData);
+    }
 
+    @GetMapping("/nearby")
+    public ResponseEntity<RsData<List<FestivalMarkerDto>>> getNearbyFestivals(
+            @ParameterObject @ModelAttribute FestivalSearchDto searchDto
+    ){
+        FestivalSearchDto mapSearchDto = searchDto.applyMapDefaults();
+        List<Festival> festivals = festivalService.getNearbyMarkers(mapSearchDto);
+
+        List<FestivalMarkerDto> markerDtoList = festivals.stream()
+                .map(FestivalMarkerDto::from)
+                .toList();
+
+        RsData<List<FestivalMarkerDto>> rsData = new RsData<>("200", "주변 축제 조회 성공", markerDtoList);
         return ResponseEntity.ok(rsData);
     }
 }
