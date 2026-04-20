@@ -9,6 +9,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -27,5 +31,9 @@ public class FestivalService {
 
         return festivalRepository.findById(id)
                 .orElseThrow(()-> new CustomNotFoundException("404","존재하지 않는 축제입니다."));
+    }
+
+    public List<Festival> getNearbyMarkers(FestivalSearchDto searchDto){
+        return festivalRepository.findNearbyFestivals(searchDto);
     }
 }
