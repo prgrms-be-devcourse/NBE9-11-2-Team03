@@ -42,3 +42,7 @@ db_dev.trace.db
 
 ### Querydsl ###
 /src/main/generated/
+
+.env
+
+mysql_data/
