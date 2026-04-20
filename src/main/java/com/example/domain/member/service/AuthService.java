@@ -7,9 +7,11 @@ import com.example.domain.member.dto.response.LoginResponse;
 import com.example.domain.member.dto.response.SignupResponse;
 import com.example.domain.member.dto.response.TokenReissueResponse;
 import com.example.domain.member.dto.response.WithdrawRes;
+import com.example.domain.member.entity.AccessTokenBlacklist;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.entity.RefreshToken;
+import com.example.domain.member.repository.AccessTokenBlacklistRepository;
 import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.member.repository.RefreshTokenRepository;
 import com.example.global.exception.*;
@@ -30,6 +32,7 @@ public class AuthService {
 
     private final MemberRepository memberRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final AccessTokenBlacklistRepository accessTokenBlacklistRepository;
     // 회원가입 때는 비밀번호를 암호화하고, 로그인 때는 입력값과 저장값을 비교한다.
     private final PasswordEncoder passwordEncoder;
     // 로그인 성공 후 access token을 만들기 위해 사용하는 JWT 전용 유틸이다.
@@ -94,10 +97,26 @@ public class AuthService {
     // 4) 로그아웃
     // 로그아웃하면 refresh token row는 남기고 token 값만 비워 재발급을 막습니다.
     @Transactional
-    public void logout(String loginId) {
+    public void logout(String loginId, String accessToken) {
         Member member = findMemberByLoginId(loginId);
         refreshTokenRepository.findByMemberId(member.getId())
                 .ifPresent(RefreshToken::logout);
+        saveAccessTokenBlacklist(accessToken);
+    }
+
+    private void saveAccessTokenBlacklist(String accessToken) {
+        if (accessToken == null || !jwtUtil.validateToken(accessToken) || !jwtUtil.isAccessToken(accessToken)) {
+            return;
+        }
+
+        if (accessTokenBlacklistRepository.existsByToken(accessToken)) {
+            return;
+        }
+
+        // 로그아웃된 access token은 만료 시간까지만 차단 목록에 저장함.
+        accessTokenBlacklistRepository.save(
+                AccessTokenBlacklist.create(accessToken, jwtUtil.getExpirationDateTime(accessToken))
+        );
     }
 
     // 5) 회원가입 시 아이디, 이메일, 닉네임 중복 여부를 검사
