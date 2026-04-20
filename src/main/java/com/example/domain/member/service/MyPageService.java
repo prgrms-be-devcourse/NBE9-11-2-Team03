@@ -44,7 +44,8 @@ public class MyPageService {
                 member.getEmail(),
                 member.getNickname(),
                 reviewCount,
-                bookMarkCount
+                bookMarkCount,
+                member.getRole()
         );
     }
     //logind를 토대로 내가 쓴 리뷰를 찾고, 그리뷰를 페이징하여 넘겨주는 메서드
