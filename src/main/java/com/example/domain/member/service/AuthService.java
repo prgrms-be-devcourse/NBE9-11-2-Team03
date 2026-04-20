@@ -14,7 +14,6 @@ import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.member.repository.RefreshTokenRepository;
 import com.example.global.exception.*;
 import com.example.global.jwt.JwtUtil;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -78,6 +77,8 @@ public class AuthService {
         validateRefreshToken(refreshTokenValue);
 
         RefreshToken refreshToken = findRefreshToken(refreshTokenValue);
+        // 사용할 수 없는 refresh token이면 재발급하지 않음.
+        validateRefreshTokenActive(refreshToken);
         validateRefreshTokenNotExpired(refreshToken);
 
         Member member = refreshToken.getMember();
@@ -91,11 +92,12 @@ public class AuthService {
     }
 
     // 4) 로그아웃
-    // 로그아웃하면 DB에 저장된 refresh token을 삭제해서 재발급을 막습니다.
+    // 로그아웃하면 refresh token row는 남기고 token 값만 비워 재발급을 막습니다.
     @Transactional
     public void logout(String loginId) {
         Member member = findMemberByLoginId(loginId);
-        refreshTokenRepository.deleteByMemberId(member.getId());
+        refreshTokenRepository.findByMemberId(member.getId())
+                .ifPresent(RefreshToken::logout);
     }
 
     // 5) 회원가입 시 아이디, 이메일, 닉네임 중복 여부를 검사
@@ -173,6 +175,13 @@ public class AuthService {
                 .orElseThrow(() -> new UnauthorizedException("유효하지 않은 refresh token입니다."));
     }
 
+    // 사용할 수 없는 refresh token은 다시 재발급에 사용할 수 없음.
+    private void validateRefreshTokenActive(RefreshToken refreshToken) {
+        if (!refreshToken.isActive()) {
+            throw new UnauthorizedException("사용할 수 없는 refresh token입니다.");
+        }
+    }
+
     // 만료된 refresh token은 삭제하고 재발급을 막음.
     private void validateRefreshTokenNotExpired(RefreshToken refreshToken) {
         if (refreshToken.isExpired()) {
@@ -191,7 +200,9 @@ public class AuthService {
         }
         validatePassword(password,member.getPassword());
         member.withdraw();
-        refreshTokenRepository.deleteByMemberId(member.getId());
+        // 탈퇴 시에도 남아있는 refresh token을 사용 불가 상태로 바꿈.
+        refreshTokenRepository.findByMemberId(member.getId())
+                .ifPresent(RefreshToken::logout);
         return new WithdrawRes(member.getId(),member.getStatus());
     }
 }
