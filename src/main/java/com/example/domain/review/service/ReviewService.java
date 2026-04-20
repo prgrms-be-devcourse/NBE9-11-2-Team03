@@ -209,10 +209,13 @@ public class ReviewService {
         }
 
         if ("BLIND".equalsIgnoreCase(action)) {
+            if (review.getStatus() == ReviewStatus.BLIND) {
+                throw new BadRequestException("이미 블라인드 처리된 리뷰입니다.");
+            }
             review.reviewBlind();
             Member author = review.getMember();
-            if(author!=null){
-                author.increaseReportCount();
+            if(author != null){
+                memberRepository.incrementReportCount(author.getId());
             }
         }
         else if ("DISMISS".equalsIgnoreCase(action)) {
