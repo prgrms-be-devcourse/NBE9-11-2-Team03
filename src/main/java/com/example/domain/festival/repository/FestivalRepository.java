@@ -1,6 +1,6 @@
 package com.example.domain.festival.repository;
 
-import com.example.domain.festival.dto.FestivalSearchDto;
+import com.example.domain.festival.dto.FestivalSearchRequestDto;
 import com.example.domain.festival.entity.Festival;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +19,7 @@ public interface FestivalRepository extends JpaRepository<Festival, Long>, Festi
     boolean existsByContentId(String contentId);
 
     // 축제 검색용
-    Page<Festival> searchFestivals(FestivalSearchDto searchDto, Pageable pageable);
+    Page<Festival> searchFestivals(FestivalSearchRequestDto searchDto, Pageable pageable);
 
     //반복 단건 조회(findByContentId)로 인한 DB 병목을 줄이기 위한 메서드
     List<Festival> findAllByContentIdIn(List<String> contentIds);
