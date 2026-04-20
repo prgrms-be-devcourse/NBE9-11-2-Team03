@@ -1,6 +1,6 @@
 package com.example;
 
-import com.example.domain.festival.dto.FestivalSearchDto;
+import com.example.domain.festival.dto.FestivalSearchRequestDto;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.entity.FestivalStatus;
 import com.example.domain.festival.repository.FestivalRepository;
@@ -110,7 +110,7 @@ public class FestivalRepositoryImplTest {
     @Test
     @DisplayName("1. 글로벌 기본 정렬 룰 테스트 (조건 없을 때)")
     void defaultSortTest() {
-        FestivalSearchDto condition = new FestivalSearchDto(null, null, null, null, null, null, null);
+        FestivalSearchRequestDto condition = new FestivalSearchRequestDto(null, null, null, null, null, null, null);
         PageRequest pageRequest = PageRequest.of(0, 10);
 
         Page<Festival> result = festivalRepository.searchFestivals(condition, pageRequest);
@@ -133,7 +133,7 @@ public class FestivalRepositoryImplTest {
     @DisplayName("2. 지역 및 키워드 필터링 테스트")
     void searchFilterTest() {
         // given
-        FestivalSearchDto condition = new FestivalSearchDto("서울", null, null, "벚꽃", null, null, null);
+        FestivalSearchRequestDto condition = new FestivalSearchRequestDto("서울", null, null, "벚꽃", null, null, null);
         PageRequest pageRequest = PageRequest.of(0, 10);
 
         // when
@@ -148,7 +148,7 @@ public class FestivalRepositoryImplTest {
     @DisplayName("3. 다중 조건 정렬 테스트 (조회순 내림차순)")
     void customSortTest() {
         // given
-        FestivalSearchDto condition = new FestivalSearchDto(null, null, null, null, null, null,null);
+        FestivalSearchRequestDto condition = new FestivalSearchRequestDto(null, null, null, null, null, null,null);
         // 조회수(viewCount) 내림차순 정렬 추가
         PageRequest pageRequest = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "viewCount"));
 
@@ -171,7 +171,7 @@ public class FestivalRepositoryImplTest {
         // given
         // 현재 달을 기준으로 세팅 (setUp 데이터들이 현재 날짜 기준이므로)
         int currentMonth = LocalDateTime.now().getMonthValue();
-        FestivalSearchDto condition = new FestivalSearchDto(null, null, currentMonth, null, null, null, null);
+        FestivalSearchRequestDto condition = new FestivalSearchRequestDto(null, null, currentMonth, null, null, null, null);
         PageRequest pageRequest = PageRequest.of(0, 10);
 
         // when
@@ -187,7 +187,7 @@ public class FestivalRepositoryImplTest {
     @DisplayName("5. 상태(Status) 단일 필터링 및 ENDED 기본 정렬 테스트")
     void statusFilterAndEndedSortTest() {
         // given: 상태를 ENDED(종료)로만 검색
-        FestivalSearchDto condition = new FestivalSearchDto(null, FestivalStatus.ENDED, null, null, null, null, null);
+        FestivalSearchRequestDto condition = new FestivalSearchRequestDto(null, FestivalStatus.ENDED, null, null, null, null, null);
         PageRequest pageRequest = PageRequest.of(0, 10);
 
         // when
@@ -206,7 +206,7 @@ public class FestivalRepositoryImplTest {
     @DisplayName("6. 찜순(bookmarkCount) 다중 조건 정렬 테스트")
     void bookmarkSortTest() {
         // given: 조건 없이 찜순 내림차순 정렬 요청
-        FestivalSearchDto condition = new FestivalSearchDto(null, null, null, null, null, null, null);
+        FestivalSearchRequestDto condition = new FestivalSearchRequestDto(null, null, null, null, null, null, null);
         PageRequest pageRequest = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "bookmarkCount"));
 
         // when
@@ -229,7 +229,7 @@ public class FestivalRepositoryImplTest {
     @DisplayName("7. 검색 결과가 전혀 없는 경우 (Empty) 테스트")
     void emptyResultTest() {
         // given: 절대 있을 수 없는 요상한 조건으로 검색
-        FestivalSearchDto condition = new FestivalSearchDto("하와이", null, null, "외계인", null, null, null);
+        FestivalSearchRequestDto condition = new FestivalSearchRequestDto("하와이", null, null, "외계인", null, null, null);
         PageRequest pageRequest = PageRequest.of(0, 10);
 
         // when
