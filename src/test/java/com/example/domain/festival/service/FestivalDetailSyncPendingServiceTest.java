@@ -1,5 +1,6 @@
 package com.example.domain.festival.service;
 
+import com.example.domain.festival.dto.response.FestivalSyncStatusResponseDto;
 import com.example.domain.festival.entity.DetailSyncPendingReason;
 import com.example.domain.festival.entity.FestivalDetailSyncPending;
 import com.example.domain.festival.repository.FestivalDetailSyncPendingRepository;
@@ -38,7 +39,6 @@ class FestivalDetailSyncPendingServiceTest {
 
         service.saveOrUpdate("1001", DetailSyncPendingReason.SERVER_ERROR);
 
-        // save는 호출되지 않음 (update 방식)
         verify(repository, never()).save(any());
 
         assertThat(existing.getRetryCount()).isEqualTo(2);
@@ -67,5 +67,43 @@ class FestivalDetailSyncPendingServiceTest {
         var result = service.findAllContentIds();
 
         assertThat(result).containsExactly("1001", "1002");
+    }
+
+    @Test
+    @DisplayName("sync-status 조회 시 pending이 없으면 needsRetry는 false이다")
+    void getSyncStatus_empty_test() {
+        when(repository.count()).thenReturn(0L);
+        when(repository.countByReason(DetailSyncPendingReason.RATE_LIMIT)).thenReturn(0L);
+        when(repository.countByReason(DetailSyncPendingReason.SERVER_ERROR)).thenReturn(0L);
+        when(repository.countByReason(DetailSyncPendingReason.EXCEPTION)).thenReturn(0L);
+        when(repository.countByReason(DetailSyncPendingReason.UNPROCESSED)).thenReturn(0L);
+
+        FestivalSyncStatusResponseDto result = service.getSyncStatus();
+
+        assertThat(result.getPendingCount()).isEqualTo(0L);
+        assertThat(result.isNeedsRetry()).isFalse();
+        assertThat(result.getPendingBreakdown()).containsEntry("RATE_LIMIT", 0L);
+        assertThat(result.getPendingBreakdown()).containsEntry("SERVER_ERROR", 0L);
+        assertThat(result.getPendingBreakdown()).containsEntry("EXCEPTION", 0L);
+        assertThat(result.getPendingBreakdown()).containsEntry("UNPROCESSED", 0L);
+    }
+
+    @Test
+    @DisplayName("sync-status 조회 시 pending breakdown과 needsRetry를 반환한다")
+    void getSyncStatus_with_pending_test() {
+        when(repository.count()).thenReturn(3L);
+        when(repository.countByReason(DetailSyncPendingReason.RATE_LIMIT)).thenReturn(1L);
+        when(repository.countByReason(DetailSyncPendingReason.SERVER_ERROR)).thenReturn(0L);
+        when(repository.countByReason(DetailSyncPendingReason.EXCEPTION)).thenReturn(0L);
+        when(repository.countByReason(DetailSyncPendingReason.UNPROCESSED)).thenReturn(2L);
+
+        FestivalSyncStatusResponseDto result = service.getSyncStatus();
+
+        assertThat(result.getPendingCount()).isEqualTo(3L);
+        assertThat(result.isNeedsRetry()).isTrue();
+        assertThat(result.getPendingBreakdown()).containsEntry("RATE_LIMIT", 1L);
+        assertThat(result.getPendingBreakdown()).containsEntry("SERVER_ERROR", 0L);
+        assertThat(result.getPendingBreakdown()).containsEntry("EXCEPTION", 0L);
+        assertThat(result.getPendingBreakdown()).containsEntry("UNPROCESSED", 2L);
     }
 }

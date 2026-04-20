@@ -1,5 +1,6 @@
 package com.example.domain.festival.service;
 
+import com.example.domain.festival.dto.response.FestivalSyncStatusResponseDto;
 import com.example.domain.festival.entity.DetailSyncPendingReason;
 import com.example.domain.festival.entity.FestivalDetailSyncPending;
 import com.example.domain.festival.repository.FestivalDetailSyncPendingRepository;
@@ -7,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 //상세 보강 재처리 대상 저장/조회/삭제를 담당하는 서비스
 @Service
@@ -45,10 +48,27 @@ public class FestivalDetailSyncPendingService {
         return pendingRepository.count();
     }
 
-    //재처리 대상 원인 카운터(로그용)
+    //reason별 pending 건수 조회(로그용)
     @Transactional(readOnly = true)
     public long countByReason(DetailSyncPendingReason reason) {
         return pendingRepository.countByReason(reason);
     }
 
+    //reason별 pending 건수 조회(로그용)
+    @Transactional(readOnly = true)
+    public FestivalSyncStatusResponseDto getSyncStatus() {
+        Map<String, Long> pendingBreakdown = new LinkedHashMap<>();
+
+        for (DetailSyncPendingReason reason : DetailSyncPendingReason.values()) {
+            pendingBreakdown.put(reason.name(), countByReason(reason));
+        }
+
+        long pendingCount = count();
+
+        return new FestivalSyncStatusResponseDto(
+                pendingCount,
+                pendingBreakdown,
+                pendingCount > 0
+        );
+    }
 }

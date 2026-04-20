@@ -2,6 +2,8 @@ package com.example.domain.festival.controller;
 
 import com.example.domain.festival.dto.response.FestivalSyncResponseDto;
 import com.example.domain.festival.dto.response.FestivalSyncResult;
+import com.example.domain.festival.dto.response.FestivalSyncStatusResponseDto;
+import com.example.domain.festival.service.FestivalDetailSyncPendingService;
 import com.example.domain.festival.service.FestivalSyncService;
 import com.example.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @PreAuthorize("hasRole('ADMIN')")
 @RestController
@@ -17,6 +20,7 @@ import java.util.List;
 public class FestivalAdminController {
 
     private final FestivalSyncService festivalSyncService;
+    private final FestivalDetailSyncPendingService pendingService;
 
     // 메인 관리자 동기화 API
         //1. 목록 동기화 수행 (신규/변경 데이터 반영)
@@ -127,5 +131,28 @@ public class FestivalAdminController {
     public RsData<Void> enrichFestivalByContentId(@PathVariable String contentId) {
         festivalSyncService.enrichFestivalDetailByContentId(contentId);
         return RsData.success("특정 축제 상세 정보 보강이 완료되었습니다.");
+    }
+
+    // 현재 상세 동기화 상태 조회 API
+    @GetMapping("/sync-status")
+    public RsData<FestivalSyncStatusResponseDto> getFestivalSyncStatus() {
+        FestivalSyncStatusResponseDto response = pendingService.getSyncStatus();
+
+        Map<String, Long> breakdown = response.getPendingBreakdown();
+
+        String message;
+
+        if (!response.isNeedsRetry()) {
+            message = "축제 동기화가 정상 상태입니다. 재처리할 상세 대상이 없습니다.";
+        } else if (breakdown.getOrDefault("RATE_LIMIT", 0L) > 0) {
+            message = "API 호출 제한으로 인해 상세 동기화 재처리가 필요합니다.";
+        } else if (breakdown.getOrDefault("SERVER_ERROR", 0L) > 0
+                || breakdown.getOrDefault("EXCEPTION", 0L) > 0) {
+            message = "상세 동기화 실패 대상이 존재합니다. 재처리가 필요합니다.";
+        } else {
+            message = "미처리된 상세 동기화 대상이 존재합니다. 재처리가 필요합니다.";
+        }
+
+        return RsData.success(message, response);
     }
 }
