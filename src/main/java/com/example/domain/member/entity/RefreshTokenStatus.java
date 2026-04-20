@@ -4,6 +4,6 @@ package com.example.domain.member.entity;
 public enum RefreshTokenStatus {
     // 재발급에 사용할 수 있는 상태
     ACTIVE,
-    // 로그아웃되어 다시 사용할 수 없는 상태
-    LOGGED_OUT
+    // 다시 사용할 수 없는 상태
+    UNACTIVATED
 }

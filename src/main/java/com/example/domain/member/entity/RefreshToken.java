@@ -12,6 +12,8 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -34,7 +36,8 @@ public class RefreshToken extends BaseEntity {
 
     // refresh token이 재발급에 사용 가능한 상태인지 저장함.
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(nullable = false, length = 30)
     private RefreshTokenStatus status = RefreshTokenStatus.ACTIVE;
 
     // refresh token이 로그아웃 처리된 시간을 저장함.
@@ -64,7 +67,7 @@ public class RefreshToken extends BaseEntity {
     // 로그아웃하면 기록은 남기고 token 값과 상태만 바꿈.
     public void logout() {
         this.token = null;
-        this.status = RefreshTokenStatus.LOGGED_OUT;
+        this.status = RefreshTokenStatus.UNACTIVATED;
         this.loggedOutAt = LocalDateTime.now();
     }
 

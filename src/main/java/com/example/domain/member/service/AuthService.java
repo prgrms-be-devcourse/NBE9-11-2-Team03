@@ -77,7 +77,7 @@ public class AuthService {
         validateRefreshToken(refreshTokenValue);
 
         RefreshToken refreshToken = findRefreshToken(refreshTokenValue);
-        // 로그아웃된 refresh token이면 재발급하지 않음.
+        // 사용할 수 없는 refresh token이면 재발급하지 않음.
         validateRefreshTokenActive(refreshToken);
         validateRefreshTokenNotExpired(refreshToken);
 
@@ -175,10 +175,10 @@ public class AuthService {
                 .orElseThrow(() -> new UnauthorizedException("유효하지 않은 refresh token입니다."));
     }
 
-    // 로그아웃 처리된 refresh token은 다시 사용할 수 없음.
+    // 사용할 수 없는 refresh token은 다시 재발급에 사용할 수 없음.
     private void validateRefreshTokenActive(RefreshToken refreshToken) {
         if (!refreshToken.isActive()) {
-            throw new UnauthorizedException("로그아웃된 refresh token입니다.");
+            throw new UnauthorizedException("사용할 수 없는 refresh token입니다.");
         }
     }
 
@@ -200,7 +200,7 @@ public class AuthService {
         }
         validatePassword(password,member.getPassword());
         member.withdraw();
-        // 탈퇴 시에도 남아있는 refresh token을 로그아웃 상태로 바꿈.
+        // 탈퇴 시에도 남아있는 refresh token을 사용 불가 상태로 바꿈.
         refreshTokenRepository.findByMemberId(member.getId())
                 .ifPresent(RefreshToken::logout);
         return new WithdrawRes(member.getId(),member.getStatus());
