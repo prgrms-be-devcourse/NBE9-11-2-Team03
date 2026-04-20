@@ -5,6 +5,7 @@ import com.example.domain.review.entity.ReviewStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -24,5 +25,14 @@ public interface ReviewRepository extends JpaRepository<Review,Long> {
 
     //사용자가 단 리뷰
     Page<Review> findByMemberIdAndStatus(Long memberId,ReviewStatus status,Pageable pageable);
+
+    //리뷰를 블라인드로 바꾸는 함수
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Review  r SET r.status = 'BLIND' WHERE r.id=:id AND r.status='ACTIVE'")
+    int updateStatusToBlindActive(@Param("id") Long id);
+    //리뷰가 ACITVE고 신고 횟수가 남아 있을때 0으로 바꾼느 메서드
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Review r SET r.reportCount = 0 WHERE r.id=:id AND r.status='ACTIVE' AND r.reportCount>0")
+    int resetReportCountIfActive(@Param("id") Long id);
 
 }
