@@ -114,6 +114,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         );
     }
 
+    private boolean isBlacklisted(String token) {
+        // 로그아웃된 access token이면 다시 인증하지 않음.
+        return accessTokenBlacklistRepository.existsByToken(token);
+    }
+
     // 개발용 토큰은 실제 JWT가 아니므로 설정값과 정확히 일치할 때만 통과시킨다.
     private boolean isDevToken(String token) {
         return devTokenEnabled

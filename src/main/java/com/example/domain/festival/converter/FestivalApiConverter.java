@@ -66,13 +66,59 @@ public class FestivalApiConverter {
         );
     }
 
+    //기존 Festival 엔티티에 외부 API 값을 반영 (변경여부를 기준으로 축제를 Update할 때)
+    public boolean hasListChanges(Festival festival, FestivalApiItem item) {
+        LocalDateTime startDate = parseStartDate(item.getEventstartdate());
+        LocalDateTime endDate = parseEndDate(item.getEventenddate());
+
+        String title = safeTrim(item.getTitle());
+        String contactNumber = normalizeContactNumber(item.getTel());
+        String firstImageUrl = nullableText(item.getFirstimage());
+        String thumbnailUrl = resolveThumbnail(item.getFirstimage2(), item.getFirstimage());
+        String address = buildAddress(item.getAddr1(), item.getAddr2());
+        Double mapX = parseDouble(item.getMapx());
+        Double mapY = parseDouble(item.getMapy());
+        String lDongRegnCd = extractRegionCode(item.getLDongRegnCd());
+        FestivalStatus status = calculateStatus(startDate, endDate);
+
+        return !festival.isSameListInfo(
+                title,
+                contactNumber,
+                firstImageUrl,
+                thumbnailUrl,
+                address,
+                startDate,
+                endDate,
+                mapX,
+                mapY,
+                lDongRegnCd,
+                status
+        );
+    }
+
     //상세 API 기반 상세 정보 보강
     public void updateDetailFields(Festival festival, FestivalApiItem item) {
         festival.updateFestivalDetailInfo(
                 defaultText(item.getOverview()),
-                extractHomepageUrl(item.getHomepage()),
-                normalizeContactNumber(item.getTel())
+                extractHomepageUrl(item.getHomepage())
         );
+    }
+
+    //상세 변경 여부 메서드 추가 (변경여부를 기준으로 축제를 Update할 때)
+    public boolean hasDetailChanges(Festival festival, FestivalApiItem item) {
+        String overview = defaultText(item.getOverview());
+        String homepageUrl = extractHomepageUrl(item.getHomepage());
+
+        return !festival.isSameDetailInfo(
+                overview,
+                homepageUrl
+        );
+    }
+
+    // 상세 미완료 여부는 overview 기준으로만 판단한다.
+    // homepageUrl은 외부 데이터 특성상 null이 정상값일 수 있으므로, 재보강 대상 판단 기준으로 사용하지 않는다.
+    public boolean isDetailIncomplete(Festival festival) {
+        return "상세 설명 없음".equals(festival.getOverview());
     }
 
     // L_DONG_REGN_CD 앞 2자리만 추출
