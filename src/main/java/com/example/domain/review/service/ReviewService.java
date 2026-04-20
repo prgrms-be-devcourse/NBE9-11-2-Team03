@@ -11,10 +11,7 @@ import com.example.domain.review.dto.*;
 import com.example.domain.review.entity.Review;
 import com.example.domain.review.entity.ReviewStatus;
 import com.example.domain.review.repository.ReviewRepository;
-import com.example.global.exception.BadRequestException;
-import com.example.global.exception.CustomNotFoundException;
-import com.example.global.exception.ForbiddenException;
-import com.example.global.exception.UnauthorizedException;
+import com.example.global.exception.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -207,23 +204,29 @@ public class ReviewService {
         if(review.getStatus()==ReviewStatus.DELETED){
             throw new BadRequestException("삭제된 리뷰는 상태를 변경할 수 없습니다.");
         }
+        int updatedCount =0 ;
 
         if ("BLIND".equalsIgnoreCase(action)) {
-            if (review.getStatus() == ReviewStatus.BLIND) {
-                throw new BadRequestException("이미 블라인드 처리된 리뷰입니다.");
-            }
-            review.reviewBlind();
-            Member author = review.getMember();
-            if(author != null){
-                memberRepository.incrementReportCount(author.getId());
+            updatedCount= reviewRepository.updateStatusToBlindActive(reviewId);
+            if(updatedCount>0){
+                Member author = review.getMember();
+                if(author!=null){
+                    memberRepository.incrementReportCount(author.getId());
+                }
+                review.reviewBlind();
             }
         }
         else if ("DISMISS".equalsIgnoreCase(action)) {
-            // 신고 횟수를 0으로 초기화 (무혐의 처리)
-            review.reportCountReset();
+            updatedCount = reviewRepository.resetReportCountIfActive(reviewId);
+            if(updatedCount>0){
+                review.reportCountReset();
+            }
         }
         else {
             throw new IllegalArgumentException("허용되지 않은 리뷰 상태입니다.: " + action);
+        }
+        if(updatedCount==0){
+            throw new ConflictException("이미 다른 관리자가 처리한 리뷰입니다.");
         }
         return new AdminReviewBlindRes(
                 review.getId(),
