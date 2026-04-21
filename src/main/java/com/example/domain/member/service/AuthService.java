@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 
@@ -76,7 +77,11 @@ public class AuthService {
     // refresh token이 정상이고 DB에 저장된 값과 같을 때만 새 토큰을 발급함.
     @Transactional
     public TokenReissueResponse reissue(TokenReissueRequest request) {
-        String refreshTokenValue = request.getRefreshToken();
+        return reissue(request.getRefreshToken());
+    }
+
+    @Transactional
+    public TokenReissueResponse reissue(String refreshTokenValue) {
         validateRefreshToken(refreshTokenValue);
 
         RefreshToken refreshToken = findRefreshToken(refreshTokenValue);
@@ -183,7 +188,7 @@ public class AuthService {
 
     // refresh token 형식이 맞는지 먼저 확인함.
     private void validateRefreshToken(String refreshToken) {
-        if (!jwtUtil.validateToken(refreshToken) || !jwtUtil.isRefreshToken(refreshToken)) {
+        if (!StringUtils.hasText(refreshToken) || !jwtUtil.validateToken(refreshToken) || !jwtUtil.isRefreshToken(refreshToken)) {
             throw new UnauthorizedException("유효하지 않은 refresh token입니다.");
         }
     }

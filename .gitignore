@@ -37,6 +37,7 @@ out/
 .vscode/
 
 src/main/resources/application.yaml
+src/main/resources/application-mysql.yaml
 db_dev.mv.db
 db_dev.trace.db
 
@@ -45,6 +46,5 @@ db_dev.trace.db
 .env
 # Docker MySQL data
 mysql_data/
-
 sq/
 *.sq
