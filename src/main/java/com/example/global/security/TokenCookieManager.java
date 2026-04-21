@@ -14,7 +14,6 @@ import java.time.Duration;
 @Component
 public class TokenCookieManager {
 
-    public static final String ACCESS_TOKEN_COOKIE_NAME = "accessToken";
     public static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
@@ -22,31 +21,22 @@ public class TokenCookieManager {
     private static final String COOKIE_PATH = "/";
     private static final String SAME_SITE = "Lax";
 
-    @Value("${jwt.access-token-expiration-ms:1800000}")
-    private long accessTokenExpirationMs;
-
     @Value("${jwt.refresh-token-expiration-ms:1209600000}")
     private long refreshTokenExpirationMs;
 
-    public void addTokenCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        addCookie(response, ACCESS_TOKEN_COOKIE_NAME, accessToken, Duration.ofMillis(accessTokenExpirationMs));
+    public void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+        // refresh token만 HttpOnly 쿠키로 내려줌.
         addCookie(response, REFRESH_TOKEN_COOKIE_NAME, refreshToken, Duration.ofMillis(refreshTokenExpirationMs));
     }
 
-    public void clearTokenCookies(HttpServletResponse response) {
-        addCookie(response, ACCESS_TOKEN_COOKIE_NAME, "", Duration.ZERO);
+    public void clearRefreshTokenCookie(HttpServletResponse response) {
+        // 로그아웃 시 브라우저에 남은 refresh token 쿠키를 삭제함.
         addCookie(response, REFRESH_TOKEN_COOKIE_NAME, "", Duration.ZERO);
     }
 
     public String resolveAccessToken(HttpServletRequest request) {
-        String bearerToken = extractBearerToken(request);
-
-        if (StringUtils.hasText(bearerToken)) {
-            return bearerToken;
-        }
-
-        // Authorization 헤더가 없으면 쿠키에서 access token을 찾음.
-        return extractCookieValue(request, ACCESS_TOKEN_COOKIE_NAME);
+        // access token은 기존 방식대로 Authorization 헤더에서만 꺼냄.
+        return extractBearerToken(request);
     }
 
     public String resolveRefreshToken(HttpServletRequest request) {

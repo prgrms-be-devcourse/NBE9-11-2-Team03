@@ -54,8 +54,8 @@ public class AuthController {
             HttpServletResponse httpResponse
     ) {
         LoginResponse response = authService.login(request);
-        // 로그인 성공 시 토큰을 HttpOnly 쿠키로 내려줌.
-        tokenCookieManager.addTokenCookies(httpResponse, response.getAccessToken(), response.getRefreshToken());
+        // refresh token만 HttpOnly 쿠키로 내려줌.
+        tokenCookieManager.addRefreshTokenCookie(httpResponse, response.getRefreshToken());
 
         return ResponseEntity.ok(new ApiRes<>(200, "로그인 성공", response));
     }
@@ -75,8 +75,8 @@ public class AuthController {
         }
 
         TokenReissueResponse response = authService.reissue(refreshToken);
-        // 재발급된 토큰도 다시 쿠키에 저장함.
-        tokenCookieManager.addTokenCookies(httpResponse, response.getAccessToken(), response.getRefreshToken());
+        // 새 refresh token도 다시 쿠키에 저장함.
+        tokenCookieManager.addRefreshTokenCookie(httpResponse, response.getRefreshToken());
 
         return ResponseEntity.ok(new ApiRes<>(200, "토큰 재발급 성공", response));
     }
@@ -90,8 +90,8 @@ public class AuthController {
             HttpServletResponse response
     ) {
         authService.logout(authentication.getName(), tokenCookieManager.resolveAccessToken(request));
-        // 로그아웃 후 브라우저에 남은 토큰 쿠키를 삭제함.
-        tokenCookieManager.clearTokenCookies(response);
+        // 로그아웃 후 브라우저에 남은 refresh token 쿠키를 삭제함.
+        tokenCookieManager.clearRefreshTokenCookie(response);
 
         return ResponseEntity.ok(new ApiRes<>(200, "로그아웃 성공", null));
     }
