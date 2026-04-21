@@ -27,12 +27,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final String ROLE_PREFIX = "ROLE_";
 
     private final JwtUtil jwtUtil;
     private final AccessTokenBlacklistRepository accessTokenBlacklistRepository;
+    private final TokenCookieManager tokenCookieManager;
     private final ObjectMapper objectMapper;
 
     // 개발 중 Postman 테스트를 위해 정식 JWT와 별도로 허용할 고정 토큰 사용 여부다.
@@ -57,7 +56,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        String token = extractBearerToken(request);
+        String token = tokenCookieManager.resolveAccessToken(request);
 
         if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             if (isLoggedOutAccessToken(token)) {
@@ -69,17 +68,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    // Authorization 헤더에서 "Bearer " 뒤에 있는 실제 토큰 문자열만 꺼낸다.
-    private String extractBearerToken(HttpServletRequest request) {
-        String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
-
-        if (!StringUtils.hasText(authorizationHeader) || !authorizationHeader.startsWith(BEARER_PREFIX)) {
-            return null;
-        }
-
-        return authorizationHeader.substring(BEARER_PREFIX.length());
     }
 
     // 개발용 고정 토큰이면 임시 인증을 만들고, 아니면 정식 JWT인지 검증한다.
@@ -114,10 +102,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         );
     }
 
-    private boolean isBlacklisted(String token) {
-        // 로그아웃된 access token이면 다시 인증하지 않음.
-        return accessTokenBlacklistRepository.existsByToken(token);
-    }
 
     // 개발용 토큰은 실제 JWT가 아니므로 설정값과 정확히 일치할 때만 통과시킨다.
     private boolean isDevToken(String token) {

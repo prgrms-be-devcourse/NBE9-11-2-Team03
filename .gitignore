@@ -45,6 +45,5 @@ db_dev.trace.db
 .env
 # Docker MySQL data
 mysql_data/
-
 sq/
 *.sq
