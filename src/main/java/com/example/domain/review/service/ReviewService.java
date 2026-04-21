@@ -4,7 +4,6 @@ import com.example.domain.admin.dto.AdminReviewBlindRes;
 import com.example.domain.admin.dto.AdminReviewReportPageRes;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
-import com.example.domain.member.dto.response.MyReviewPageRes;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.review.dto.*;
