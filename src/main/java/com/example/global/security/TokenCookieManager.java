@@ -18,11 +18,18 @@ public class TokenCookieManager {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final String COOKIE_PATH = "/";
-    private static final String SAME_SITE = "Lax";
 
     @Value("${jwt.refresh-token-expiration-ms:1209600000}")
     private long refreshTokenExpirationMs;
+
+    @Value("${cookie.refresh-token.secure:false}")
+    private boolean refreshTokenCookieSecure;
+
+    @Value("${cookie.refresh-token.same-site:Lax}")
+    private String refreshTokenCookieSameSite;
+
+    @Value("${cookie.refresh-token.path:/api/auth}")
+    private String refreshTokenCookiePath;
 
     public void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         // refresh token만 HttpOnly 쿠키로 내려줌.
@@ -46,9 +53,9 @@ public class TokenCookieManager {
     private void addCookie(HttpServletResponse response, String name, String value, Duration maxAge) {
         ResponseCookie cookie = ResponseCookie.from(name, value)
                 .httpOnly(true)
-                .secure(false)
-                .sameSite(SAME_SITE)
-                .path(COOKIE_PATH)
+                .secure(refreshTokenCookieSecure)
+                .sameSite(refreshTokenCookieSameSite)
+                .path(refreshTokenCookiePath)
                 .maxAge(maxAge)
                 .build();
 

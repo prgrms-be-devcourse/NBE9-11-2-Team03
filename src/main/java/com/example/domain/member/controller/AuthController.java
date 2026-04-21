@@ -2,7 +2,6 @@ package com.example.domain.member.controller;
 
 import com.example.domain.member.dto.request.LoginRequest;
 import com.example.domain.member.dto.request.SignupRequest;
-import com.example.domain.member.dto.request.TokenReissueRequest;
 import com.example.domain.member.dto.response.LoginResponse;
 import com.example.domain.member.dto.response.SignupResponse;
 import com.example.domain.member.dto.response.TokenReissueResponse;
@@ -18,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -60,19 +58,14 @@ public class AuthController {
         return ResponseEntity.ok(new ApiRes<>(200, "로그인 성공", response));
     }
 
-    // refresh token 쿠키 또는 요청 body로 새 토큰을 다시 발급합니다.
+    // refresh token 쿠키로 새 토큰을 다시 발급합니다.
     @PostMapping("/reissue")
     @Operation(summary = "토큰 재발급", description = "refresh token을 검증한 뒤 새 토큰을 발급합니다.")
     public ResponseEntity<ApiRes<TokenReissueResponse>> reissue(
-            @RequestBody(required = false) TokenReissueRequest request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse
     ) {
         String refreshToken = tokenCookieManager.resolveRefreshToken(httpRequest);
-
-        if (!StringUtils.hasText(refreshToken) && request != null) {
-            refreshToken = request.getRefreshToken();
-        }
 
         TokenReissueResponse response = authService.reissue(refreshToken);
         // 새 refresh token도 다시 쿠키에 저장함.
