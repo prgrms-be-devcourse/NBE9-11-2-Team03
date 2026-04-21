@@ -52,14 +52,14 @@ public class ReviewLikeService {
         reviewLikeRepository.save(reviewLike);
 
         // 6. 리뷰 좋아요 수 증가
-        review.increaseLikeCount();
+        reviewRepository.increaseLikeCount(reviewId);
 
         // 7. 응답 반환
         return new ReviewLikeResponseDto(
                 review.getId(),
                 member.getId(),
                 true,
-                review.getLikeCount()
+                review.getLikeCount()+1
         );
     }
 
@@ -82,14 +82,14 @@ public class ReviewLikeService {
         reviewLikeRepository.delete(reviewLike);
 
         // 5. 리뷰 좋아요 수 감소
-        review.decreaseLikeCount();
+        reviewRepository.decreaseLikeCount(reviewId);
 
         // 6. 응답 반환
         return new ReviewLikeResponseDto(
                 review.getId(),
                 member.getId(),
                 false,
-                review.getLikeCount()
+                Math.max(0, review.getLikeCount() - 1)
         );
     }
 }

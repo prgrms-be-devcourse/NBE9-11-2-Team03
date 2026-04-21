@@ -44,13 +44,13 @@ public class FestivalBookmarkService {
         FestivalBookmark festivalBookmark = new FestivalBookmark(member, festival);
         festivalBookmarkRepository.save(festivalBookmark);
 
-        festival.increaseBookmarkCount();
+        festivalRepository.increaseBookmarkCount(festivalId);
 
         return new FestivalBookmarkResponseDto(
                 festival.getId(),
                 member.getId(),
                 true,
-                festival.getBookMarkCount()
+                festival.getBookMarkCount()+1
         );
     }
 
@@ -69,13 +69,13 @@ public class FestivalBookmarkService {
 
         festivalBookmarkRepository.delete(bookmark);
 
-        festival.decreaseBookmarkCount();
+        festivalRepository.decreaseBookmarkCount(festivalId);
 
         return new FestivalBookmarkResponseDto(
                 festival.getId(),
                 member.getId(),
                 false,
-                festival.getBookMarkCount()
+                Math.max(0, festival.getBookMarkCount() - 1)
         );
     }
 }

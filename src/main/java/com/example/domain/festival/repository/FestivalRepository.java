@@ -27,4 +27,14 @@ public interface FestivalRepository extends JpaRepository<Festival, Long>, Festi
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Festival f SET f.viewCount = f.viewCount + 1 WHERE f.id = :id")
     int incrementViewCount(@Param("id") Long id);
+
+    // 축제 찜 수 증가
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Festival f SET f.bookMarkCount = f.bookMarkCount + 1 WHERE f.id = :festivalId")
+    void increaseBookmarkCount(@Param("festivalId") Long festivalId);
+
+    // 축제 찜 수 감소
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Festival f SET f.bookMarkCount = f.bookMarkCount - 1 WHERE f.id = :festivalId AND f.bookMarkCount > 0")
+    void decreaseBookmarkCount(@Param("festivalId") Long festivalId);
 }
