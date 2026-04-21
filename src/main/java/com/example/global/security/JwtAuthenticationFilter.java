@@ -2,12 +2,15 @@ package com.example.global.security;
 
 import com.example.domain.member.repository.AccessTokenBlacklistRepository;
 import com.example.global.jwt.JwtUtil;
+import com.example.global.rsData.RsData;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,18 +20,19 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final String ROLE_PREFIX = "ROLE_";
 
     private final JwtUtil jwtUtil;
     private final AccessTokenBlacklistRepository accessTokenBlacklistRepository;
+    private final TokenCookieManager tokenCookieManager;
+    private final ObjectMapper objectMapper;
 
     // 개발 중 Postman 테스트를 위해 정식 JWT와 별도로 허용할 고정 토큰 사용 여부다.
     @Value("${security.dev-token.enabled:false}")
@@ -52,24 +56,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        String token = extractBearerToken(request);
+        String token = tokenCookieManager.resolveAccessToken(request);
 
         if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (isLoggedOutAccessToken(token)) {
+                writeUnauthorizedResponse(response, "이미 로그아웃 처리된 토큰입니다.");
+                return;
+            }
+
             authenticateByToken(token, request);
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    // Authorization 헤더에서 "Bearer " 뒤에 있는 실제 토큰 문자열만 꺼낸다.
-    private String extractBearerToken(HttpServletRequest request) {
-        String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
-
-        if (!StringUtils.hasText(authorizationHeader) || !authorizationHeader.startsWith(BEARER_PREFIX)) {
-            return null;
-        }
-
-        return authorizationHeader.substring(BEARER_PREFIX.length());
     }
 
     // 개발용 고정 토큰이면 임시 인증을 만들고, 아니면 정식 JWT인지 검증한다.
@@ -88,6 +86,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 로그아웃된 access token이면 다시 인증하지 않음.
         return accessTokenBlacklistRepository.existsByToken(token);
     }
+
+    private boolean isLoggedOutAccessToken(String token) {
+        return jwtUtil.validateToken(token) && jwtUtil.isAccessToken(token) && isBlacklisted(token);
+    }
+
+    private void writeUnauthorizedResponse(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        objectMapper.writeValue(
+                response.getWriter(),
+                new RsData<>("401", message, null)
+        );
+    }
+
 
     // 개발용 토큰은 실제 JWT가 아니므로 설정값과 정확히 일치할 때만 통과시킨다.
     private boolean isDevToken(String token) {
