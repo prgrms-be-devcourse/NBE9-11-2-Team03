@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface FestivalRepository extends JpaRepository<Festival, Long>, FestivalRepositoryCustom {
@@ -20,7 +21,20 @@ public interface FestivalRepository extends JpaRepository<Festival, Long>, Festi
     // 축제 검색용
     Page<Festival> searchFestivals(FestivalSearchRequestDto searchDto, Pageable pageable);
 
+    //반복 단건 조회(findByContentId)로 인한 DB 병목을 줄이기 위한 메서드
+    List<Festival> findAllByContentIdIn(List<String> contentIds);
+
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Festival f SET f.viewCount = f.viewCount + 1 WHERE f.id = :id")
     int incrementViewCount(@Param("id") Long id);
+
+    // 축제 찜 수 증가
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Festival f SET f.bookMarkCount = f.bookMarkCount + 1 WHERE f.id = :festivalId")
+    void increaseBookmarkCount(@Param("festivalId") Long festivalId);
+
+    // 축제 찜 수 감소
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Festival f SET f.bookMarkCount = f.bookMarkCount - 1 WHERE f.id = :festivalId AND f.bookMarkCount > 0")
+    void decreaseBookmarkCount(@Param("festivalId") Long festivalId);
 }

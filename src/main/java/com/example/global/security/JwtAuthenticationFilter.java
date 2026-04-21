@@ -1,5 +1,6 @@
 package com.example.global.security;
 
+import com.example.domain.member.repository.AccessTokenBlacklistRepository;
 import com.example.global.jwt.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,6 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String ROLE_PREFIX = "ROLE_";
 
     private final JwtUtil jwtUtil;
+    private final AccessTokenBlacklistRepository accessTokenBlacklistRepository;
 
     // 개발 중 Postman 테스트를 위해 정식 JWT와 별도로 허용할 고정 토큰 사용 여부다.
     @Value("${security.dev-token.enabled:false}")
@@ -77,9 +79,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (jwtUtil.validateToken(token) && jwtUtil.isAccessToken(token)) {
+        if (jwtUtil.validateToken(token) && jwtUtil.isAccessToken(token) && !isBlacklisted(token)) {
             setAuthentication(jwtUtil.getLoginId(token), jwtUtil.getRole(token), request);
         }
+    }
+
+    private boolean isBlacklisted(String token) {
+        // 로그아웃된 access token이면 다시 인증하지 않음.
+        return accessTokenBlacklistRepository.existsByToken(token);
     }
 
     // 개발용 토큰은 실제 JWT가 아니므로 설정값과 정확히 일치할 때만 통과시킨다.
