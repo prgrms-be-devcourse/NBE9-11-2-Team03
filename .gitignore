@@ -48,3 +48,4 @@ db_dev.trace.db
 mysql_data/
 sq/
 *.sq
+uploads/

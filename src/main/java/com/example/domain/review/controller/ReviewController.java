@@ -9,9 +9,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -23,20 +25,21 @@ public class ReviewController {
 
 
 
-    @PostMapping("/festivals/{festivalId}/reviews")
-    @Operation(summary = "축제 리뷰 작성", description = "특정 축제에 리뷰를 작성합니다.")
+    @PostMapping(value = "/festivals/{festivalId}/reviews", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "축제 리뷰 작성", description = "특정 축제에 리뷰와 사진을 함께 작성합니다.")
     public ResponseEntity<ApiRes<ReviewResponseDto>> createReview(
             @PathVariable Long festivalId,
-            @Valid @RequestBody ReviewCreateRequestDto requestDto,
+            @Valid @RequestPart("requestDto") ReviewCreateRequestDto requestDto, // @RequestBody 대신 @RequestPart 사용
+            @RequestPart(value = "image", required = false) MultipartFile image, // 이미지 파일 추가
             Authentication authentication
-            ){
+    ){
+        String loginId = authentication.getName();
 
-        String loginId =authentication.getName();
-
-        ReviewResponseDto response = reviewService.createReview(festivalId, loginId, requestDto);
+        // 서비스 메서드에 image 파일 추가 전달
+        ReviewResponseDto response = reviewService.createReview(festivalId, loginId, requestDto, image);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                        .body(new ApiRes<>(201, "리뷰 작성이 완료 되었습니다.", response));
+                .body(new ApiRes<>(201, "리뷰 작성이 완료 되었습니다.", response));
     }
 
 

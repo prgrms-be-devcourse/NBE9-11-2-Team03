@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -27,12 +28,13 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final MemberRepository memberRepository;
     private final FestivalRepository festivalRepository;
+    private final FileStorageService fileStorageService;
 
     //리뷰 작성
     @Transactional
-    public ReviewResponseDto createReview(Long festivalId, String loginId, ReviewCreateRequestDto requestDto){
-
-
+    public ReviewResponseDto createReview(Long festivalId, String loginId,
+                                          ReviewCreateRequestDto requestDto,
+                                          MultipartFile imageFile) { // 1. 파일 매개변수 추가
 
         // 1. 로그인한 회원 조회
         Member member = memberRepository.findByLoginId(loginId)
@@ -42,19 +44,25 @@ public class ReviewService {
         Festival festival = festivalRepository.findById(festivalId)
                 .orElseThrow(() -> new CustomNotFoundException("축제가 존재하지 않습니다."));
 
+        // 3. 이미지 파일 저장 로직 추가
+        String savedImagePath = null;
+        if (imageFile != null && !imageFile.isEmpty()) {
+            // 이전에 만든 fileStorageService.storeFile(imageFile)를 호출합니다.
+            savedImagePath = fileStorageService.storeFile(imageFile);
+        }
 
-        Review review = new Review(
-                member,
-                festival,
-                requestDto.getContent(),
-                requestDto.getImage(),
-                requestDto.getRating()
-        );
+        // 4. Review 객체 생성 (저장된 파일 경로 사용)
+        Review review = Review.builder() // @Builder 사용 권장
+                .member(member)
+                .festival(festival)
+                .content(requestDto.getContent())
+                .image(savedImagePath) // 실제 저장된 파일명/경로
+                .rating(requestDto.getRating())
+                .build();
 
         Review savedReview = reviewRepository.save(review);
 
         return new ReviewResponseDto(savedReview);
-
     }
 
 
