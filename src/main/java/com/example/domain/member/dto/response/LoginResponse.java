@@ -3,6 +3,7 @@ package com.example.domain.member.dto.response;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.entity.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 
 @Getter
@@ -10,6 +11,7 @@ import lombok.Getter;
 public class LoginResponse {
 
     private final String accessToken;
+    @JsonIgnore
     private final String refreshToken;
     private final Long memberId;
     private final String loginId;

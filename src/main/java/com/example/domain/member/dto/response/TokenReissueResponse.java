@@ -1,5 +1,6 @@
 package com.example.domain.member.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 
 @Getter
@@ -7,6 +8,7 @@ import lombok.Getter;
 public class TokenReissueResponse {
 
     private final String accessToken;
+    @JsonIgnore
     private final String refreshToken;
 
     private TokenReissueResponse(String accessToken, String refreshToken) {
