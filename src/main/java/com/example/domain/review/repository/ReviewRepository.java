@@ -26,6 +26,22 @@ public interface ReviewRepository extends JpaRepository<Review,Long> {
     //사용자가 단 리뷰
     Page<Review> findByMemberIdAndStatus(Long memberId,ReviewStatus status,Pageable pageable);
 
+    //리뷰 신고수 증가
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Review r SET r.reportCount = r.reportCount + 1 WHERE r.id = :reviewId")
+    void increaseReportCount(@Param("reviewId") Long reviewId);
+
+    // 리뷰 좋아요 수 증가
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Review r SET r.likeCount = r.likeCount + 1 WHERE r.id = :reviewId")
+    void increaseLikeCount(@Param("reviewId") Long reviewId);
+
+    // 리뷰 좋아요 수 감소 (0 이하로 떨어지지 않도록 조건 추가)
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Review r SET r.likeCount = r.likeCount - 1 WHERE r.id = :reviewId AND r.likeCount > 0")
+    void decreaseLikeCount(@Param("reviewId") Long reviewId);
+
+
     //리뷰를 블라인드로 바꾸는 함수
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Review  r SET r.status = 'BLIND' WHERE r.id=:id AND r.status='ACTIVE'")

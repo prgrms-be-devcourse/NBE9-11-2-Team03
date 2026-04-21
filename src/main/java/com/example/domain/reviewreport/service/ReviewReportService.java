@@ -47,7 +47,8 @@ public class ReviewReportService {
 
         // 신고 정보를 저장하고, 리뷰의 누적 신고 수도 함께 증가시킵니다.
         ReviewReport reviewReport = reviewReportRepository.save(new ReviewReport(reporter, review));
-        review.increaseReportCount();
+
+        reviewRepository.increaseReportCount(reviewId);
 
         return new ReviewReportResponse(reviewReport.getId());
     }
