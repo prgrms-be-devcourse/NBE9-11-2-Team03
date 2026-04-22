@@ -31,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
 @SpringBootTest
 @Transactional
 @AutoConfigureMockMvc
@@ -53,6 +52,7 @@ class ReviewControllerTest {
     private Member savedMember;
     private Festival savedFestival;
     private Review savedReview;
+    private Member otherMember;
 
     @BeforeEach
     void setUp() {
@@ -63,6 +63,17 @@ class ReviewControllerTest {
                         "user2",
                         "user2@test.com",
                         "닉네임2",
+                        Role.USER
+                )
+        );
+
+        otherMember = memberRepository.save(
+                new Member(
+                        "유저3",
+                        "1234",
+                        "user3",
+                        "user3@test.com",
+                        "닉네임3",
                         Role.USER
                 )
         );
@@ -98,52 +109,61 @@ class ReviewControllerTest {
     @Test
     @DisplayName("리뷰 작성 성공 - 로그인한 사용자가 축제 리뷰를 작성한다.")
     void createReview_success() throws Exception {
+        Festival newFestival = festivalRepository.save(
+                Festival.builder()
+                        .contentId("FEST-002")
+                        .overview("리뷰 작성 성공 테스트용 축제")
+                        .mapX(127.0000)
+                        .mapY(37.5000)
+                        .title("리뷰 작성 성공 축제")
+                        .address("서울 테스트동")
+                        .status(FestivalStatus.ONGOING)
+                        .startDate(LocalDateTime.now().minusDays(1))
+                        .endDate(LocalDateTime.now().plusDays(5))
+                        .viewCount(0)
+                        .bookMarkCount(0)
+                        .averageRate(0.0)
+                        .build()
+        );
 
-        // 1. JSON DTO 준비 (이미지는 별도 파일로 넘어가므로 DTO 본문에서는 제외합니다)
         String requestBody = """
-            {
-              "content": "리뷰 작성 테스트 내용",
-              "rating": 4
-            }
-            """;
+        {
+          "content": "리뷰 작성 테스트 내용",
+          "rating": 4
+        }
+        """;
 
-        // 2. MockMultipartFile 생성 (JSON DTO 파트)
         MockMultipartFile requestDtoPart = new MockMultipartFile(
-                "requestDto", // 컨트롤러의 @RequestPart("requestDto")와 일치해야 함
+                "requestDto",
                 "",
-                MediaType.APPLICATION_JSON_VALUE, // 반드시 JSON 타입 명시
+                MediaType.APPLICATION_JSON_VALUE,
                 requestBody.getBytes(StandardCharsets.UTF_8)
         );
 
-        // 3. MockMultipartFile 생성 (이미지 파트)
         MockMultipartFile imagePart = new MockMultipartFile(
-                "image", // 컨트롤러의 @RequestPart("image")와 일치해야 함
+                "image",
                 "create.jpg",
                 MediaType.IMAGE_JPEG_VALUE,
                 "dummy image content".getBytes()
         );
 
-        // 4. When: multipart()를 사용하여 POST 요청 전송
-        mockMvc.perform(multipart("/api/festivals/{festivalId}/reviews", savedFestival.getId())
-                        .file(requestDtoPart) // DTO 파일 첨부
-                        .file(imagePart)      // 이미지 첨부
+        mockMvc.perform(multipart("/api/festivals/{festivalId}/reviews", newFestival.getId())
+                        .file(requestDtoPart)
+                        .file(imagePart)
                         .with(user("user2").roles("USER"))
                         .with(csrf()))
                 .andDo(print())
-
-                // 5. Then: 결과 검증
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value(201)) // 혹은 문자열 "201"일 수 있습니다.
+                .andExpect(jsonPath("$.status").value(201))
                 .andExpect(jsonPath("$.message").value("리뷰 작성이 완료 되었습니다."))
-                .andExpect(jsonPath("$.data.festivalId").value(savedFestival.getId()))
+                .andExpect(jsonPath("$.data.festivalId").value(newFestival.getId()))
                 .andExpect(jsonPath("$.data.memberId").value(savedMember.getId()))
                 .andExpect(jsonPath("$.data.content").value("리뷰 작성 테스트 내용"))
                 .andExpect(jsonPath("$.data.rating").value(4))
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"))
-                // 💡 주의: 이미지가 실제 로컬(uploads 폴더 등)에 저장되면 반환되는 경로는 "create.jpg" 등을 포함한 서버 경로로 변환됩니다.
-                // 따라서 하드코딩된 URL 검증 대신, 값이 존재하는지 여부만 체크하는 것이 안전합니다.
                 .andExpect(jsonPath("$.data.image").isNotEmpty());
     }
+
     @Test
     @DisplayName("리뷰 목록 조회 성공 - 특정 축제의 리뷰 목록을 조회한다.")
     void getReviewList_success() throws Exception {
@@ -229,5 +249,114 @@ class ReviewControllerTest {
                 .andExpect(jsonPath("$.message").value("리뷰 삭제가 완료되었습니다."))
                 .andExpect(jsonPath("$.data.reviewId").value(savedReview.getId()))
                 .andExpect(jsonPath("$.data.status").value("DELETED"));
+    }
+
+    @Test
+    @DisplayName("리뷰 수정 실패 - 작성자가 아닌 회원은 수정할 수 없다.")
+    void updateReview_fail_notAuthor() throws Exception {
+        String requestBody = """
+        {
+          "content": "남의 리뷰 수정 시도",
+          "rating": 3,
+          "deleteImage": false
+        }
+        """;
+
+        MockMultipartFile requestDtoPart = new MockMultipartFile(
+                "requestDto",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                requestBody.getBytes(StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(multipart("/api/reviews/{reviewId}", savedReview.getId())
+                        .file(requestDtoPart)
+                        .with(user("user3").roles("USER"))
+                        .with(csrf())
+                        .with(request -> {
+                            request.setMethod(HttpMethod.PATCH.name());
+                            return request;
+                        }))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("본인이 작성한 리뷰만 수정할 수 있습니다."));
+    }
+
+    @Test
+    @DisplayName("리뷰 삭제 실패 - 작성자가 아닌 회원은 삭제할 수 없다.")
+    void deleteReview_fail_notAuthor() throws Exception {
+        mockMvc.perform(delete("/api/reviews/{reviewId}", savedReview.getId())
+                        .with(user("user3").roles("USER"))
+                        .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("본인이 작성한 리뷰만 삭제할 수 있습니다."));
+    }
+
+    @Test
+    @DisplayName("리뷰 작성 실패 - 같은 회원은 같은 축제에 중복 리뷰를 작성할 수 없다.")
+    void createReview_fail_duplicateReview() throws Exception {
+        String requestBody = """
+        {
+          "content": "중복 리뷰 작성 시도",
+          "rating": 4
+        }
+        """;
+
+        MockMultipartFile requestDtoPart = new MockMultipartFile(
+                "requestDto",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                requestBody.getBytes(StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(multipart("/api/festivals/{festivalId}/reviews", savedFestival.getId())
+                        .file(requestDtoPart)
+                        .with(user("user2").roles("USER"))
+                        .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("이미 해당 축제에 리뷰를 작성했습니다."));
+    }
+
+    @Test
+    @DisplayName("리뷰 작성 실패 - 비로그인 사용자는 리뷰를 작성할 수 없다.")
+    void createReview_fail_unauthorized() throws Exception {
+        Festival newFestival = festivalRepository.save(
+                Festival.builder()
+                        .contentId("FEST-003")
+                        .overview("비로그인 리뷰 작성 테스트용 축제")
+                        .mapX(127.1000)
+                        .mapY(37.6000)
+                        .title("비로그인 테스트 축제")
+                        .address("서울 테스트구")
+                        .status(FestivalStatus.ONGOING)
+                        .startDate(LocalDateTime.now().minusDays(1))
+                        .endDate(LocalDateTime.now().plusDays(5))
+                        .viewCount(0)
+                        .bookMarkCount(0)
+                        .averageRate(0.0)
+                        .build()
+        );
+
+        String requestBody = """
+        {
+          "content": "비로그인 리뷰 작성 시도",
+          "rating": 4
+        }
+        """;
+
+        MockMultipartFile requestDtoPart = new MockMultipartFile(
+                "requestDto",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                requestBody.getBytes(StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(multipart("/api/festivals/{festivalId}/reviews", newFestival.getId())
+                        .file(requestDtoPart)
+                        .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isUnauthorized());
     }
 }

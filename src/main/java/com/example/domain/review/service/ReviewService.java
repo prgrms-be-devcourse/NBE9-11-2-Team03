@@ -45,6 +45,11 @@ public class ReviewService {
         Festival festival = festivalRepository.findById(festivalId)
                 .orElseThrow(() -> new CustomNotFoundException("축제가 존재하지 않습니다."));
 
+        // ++ 같은 회원이 같은 축제에 중복 리뷰 작성 불가
+        if (reviewRepository.existsByMemberIdAndFestivalId(member.getId(), festivalId)) {
+            throw new ConflictException("이미 해당 축제에 리뷰를 작성했습니다.");
+        }
+
         // 3. 이미지 파일 저장 로직 추가
         String savedImagePath = null;
         if (imageFile != null && !imageFile.isEmpty()) {
