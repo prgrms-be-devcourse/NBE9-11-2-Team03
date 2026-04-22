@@ -37,7 +37,7 @@ public class MyPageService {
         if(member.getStatus()== MemberStatus.WITHDRAWN){
             throw new ForbiddenException("탈퇴한 회원은 마이페이지를 조회할 수 없습니다.");
         }
-        long reviewCount = reviewRepository.countByMemberId(member.getId()); //자신이 단 리뷰수
+        long reviewCount = reviewRepository.countByMemberIdAndStatus(member.getId(),ReviewStatus.ACTIVE); //자신이 단 리뷰수
         long bookMarkCount= festivalBookmarkRepository.countByMemberId(member.getId()); // 자신이 찜한 축제의 수
         return new MyPageRes(
                 member.getId(),
