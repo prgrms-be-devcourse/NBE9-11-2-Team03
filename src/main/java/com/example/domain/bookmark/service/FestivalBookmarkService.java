@@ -68,6 +68,7 @@ public class FestivalBookmarkService {
                 .orElseThrow(() -> new BadRequestException("찜하지 않은 축제입니다."));
 
         festivalBookmarkRepository.delete(bookmark);
+        festivalBookmarkRepository.flush();
 
         festivalRepository.decreaseBookmarkCount(festivalId);
 

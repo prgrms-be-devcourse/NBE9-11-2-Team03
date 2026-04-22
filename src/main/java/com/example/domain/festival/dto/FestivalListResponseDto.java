@@ -1,6 +1,7 @@
 package com.example.domain.festival.dto;
 
 import com.example.domain.festival.entity.Festival;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDate;
 
@@ -14,9 +15,10 @@ public record FestivalListResponseDto(
         String status,
         Integer viewCount,
         Integer bookMarkCount,
-        Double averageRate
+        Double averageRate,
+        @JsonProperty("isBookmarked") boolean isBookmarked
 ) {
-    public static FestivalListResponseDto from(Festival festival) {
+    public static FestivalListResponseDto from(Festival festival, boolean isBookmarked) {
         return new FestivalListResponseDto(
                 festival.getId(),
                 festival.getTitle(),
@@ -27,7 +29,8 @@ public record FestivalListResponseDto(
                 festival.getStatus().name(),
                 festival.getViewCount(),
                 festival.getBookMarkCount(),
-                festival.getAverageRate()
+                festival.getAverageRate(),
+                isBookmarked
         );
     }
 }
