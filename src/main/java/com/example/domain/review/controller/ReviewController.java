@@ -18,7 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
-@Tag(name = "Review", description = "리뷰API")
+@Tag(name = "Review", description = "리뷰 API")
 public class ReviewController {
 
     private final ReviewService reviewService;
@@ -64,6 +64,7 @@ public class ReviewController {
 
     //리뷰수정
     @PatchMapping(value = "/reviews/{reviewId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "축제 리뷰 수정", description = "본인이 작성한 리뷰를 수정합니다.")
     public ResponseEntity<ApiRes<ReviewUpdateResponseDto>> updateReview(
             @PathVariable Long reviewId,
             @Valid @RequestPart("requestDto") ReviewUpdateRequestDto requestDto,

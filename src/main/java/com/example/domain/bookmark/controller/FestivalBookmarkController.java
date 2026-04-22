@@ -19,7 +19,7 @@ public class FestivalBookmarkController {
     private final FestivalBookmarkService festivalBookmarkService;
 
     @PostMapping("/festivals/{festivalId}/bookmark")
-    @Operation(summary = "축제 찜하기", description = "특정 축제를 찜합니다.")
+    @Operation(summary = "축제 찜(북마크) 수행", description = "특정 축제를 찜 처리(북마크) 합니다.")
     public ResponseEntity<ApiRes<FestivalBookmarkResponseDto>> bookmarkFestival(
             @PathVariable Long festivalId,
             Authentication authentication
@@ -35,7 +35,7 @@ public class FestivalBookmarkController {
     }
 
     @DeleteMapping("/festivals/{festivalId}/bookmark")
-    @Operation(summary = "축제 찜 취소", description = "특정 축제의 찜을 취소합니다.")
+    @Operation(summary = "축제 찜(북마크) 취소", description = "특정 축제의 찜 처리(북마크)를 취소합니다.")
     public ResponseEntity<ApiRes<FestivalBookmarkResponseDto>> cancelBookmark(
             @PathVariable Long festivalId,
             Authentication authentication
