@@ -1,4 +1,4 @@
-package com.example.review.reviewLinke;
+package com.example.review.reviewLike;
 
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.entity.FestivalStatus;

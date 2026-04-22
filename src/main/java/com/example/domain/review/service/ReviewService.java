@@ -45,6 +45,11 @@ public class ReviewService {
         Festival festival = festivalRepository.findById(festivalId)
                 .orElseThrow(() -> new CustomNotFoundException("축제가 존재하지 않습니다."));
 
+        // ++ 같은 회원이 같은 축제에 중복 리뷰 작성 불가
+        if (reviewRepository.existsByMemberIdAndFestivalId(member.getId(), festivalId)) {
+            throw new ConflictException("이미 해당 축제에 리뷰를 작성했습니다.");
+        }
+
         // 3. 이미지 파일 저장 로직 추가
         String savedImagePath = null;
         if (imageFile != null && !imageFile.isEmpty()) {
@@ -119,15 +124,13 @@ public class ReviewService {
 
     //리뷰 수정
     @Transactional
-    public ReviewUpdateResponseDto updateReview(Long reviewId, String loginId, ReviewUpdateRequestDto requestDto,MultipartFile imageFile) {
+    public ReviewUpdateResponseDto updateReview(Long reviewId, String loginId, ReviewUpdateRequestDto requestDto, MultipartFile imageFile) {
 
-
-
-        // 2. 로그인한 회원 조회
+        // 1. 로그인한 회원 조회
         Member member = memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new UnauthorizedException("로그인한 회원 정보를 찾을 수 없습니다."));
 
-        // 3. 리뷰 존재 여부 확인
+        // 2. 리뷰 존재 여부 확인
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new CustomNotFoundException("존재하지 않는 리뷰입니다."));
 
@@ -150,23 +153,31 @@ public class ReviewService {
         if (requestDto.getRating() < 1 || requestDto.getRating() > 5) {
             throw new BadRequestException("평점은 1점부터 5점까지 입력 가능합니다.");
         }
-        String updateImagePath=review.getImage();
 
-        if (imageFile != null && !imageFile.isEmpty()) {
-            // 1. 기존 이미지가 있었다면 로컬 폴더에서 삭제
-            if (review.getImage() != null) {
-                fileStorageService.deleteFile(review.getImage()); // 밑에서 만들 삭제 메서드 호출
+
+        String updateImagePath = review.getImage(); // 기본값은 '기존 이미지 유지'
+
+        // 케이스 1: 클라이언트가 "기존 이미지를 삭제해달라"고 요청한 경우
+        if (requestDto.isDeleteImage()) {
+            if (updateImagePath != null) {
+                fileStorageService.deleteFile(updateImagePath); // 실제 서버에서 파일 삭제
+                updateImagePath = null; // DB에 들어갈 경로도 null로 비워줌
             }
-            // 2. 새로운 이미지 저장
-            updateImagePath = fileStorageService.storeFile(imageFile);
         }
-
-        // 7. 리뷰 수정 로직 (updateImagePath 적용)
+        // 케이스 2: 이미지 삭제 요청은 없지만, '새로운 이미지 파일'이 들어온 경우
+        else if (imageFile != null && !imageFile.isEmpty()) {
+            if (updateImagePath != null) {
+                fileStorageService.deleteFile(updateImagePath); // 기존 파일이 있으면 덮어써야 하니 먼저 삭제
+            }
+            updateImagePath = fileStorageService.storeFile(imageFile); // 새 이미지를 저장하고 경로 업데이트
+        }
+        // 7. 리뷰 수정 로직 (위에서 결정된 updateImagePath 적용)
         review.updateReview(
                 requestDto.getContent(),
                 updateImagePath,
                 requestDto.getRating()
         );
+
         // 8. 평균 평점 재계산
         Festival festival = review.getFestival();
         Double averageRating = reviewRepository.calculateAverageRatingByFestivalId(festival.getId());

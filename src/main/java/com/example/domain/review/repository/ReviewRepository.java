@@ -20,8 +20,9 @@ public interface ReviewRepository extends JpaRepository<Review,Long> {
 
     Page<Review> findByFestivalId(Long festivalId, Pageable pageable);
     Page<Review> findAllByReportCountGreaterThanEqualAndStatus(int reportCount, ReviewStatus status, Pageable pageable);
+    boolean existsByMemberIdAndFestivalId(Long memberId, Long festivalId);
 
-    long countByMemberId(Long memberId);
+    long countByMemberIdAndStatus(Long memberId, ReviewStatus status);
 
     //사용자가 단 리뷰
     Page<Review> findByMemberIdAndStatus(Long memberId,ReviewStatus status,Pageable pageable);
