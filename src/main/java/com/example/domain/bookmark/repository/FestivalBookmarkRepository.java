@@ -5,7 +5,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface FestivalBookmarkRepository extends JpaRepository<FestivalBookmark,Long> {
@@ -17,4 +20,9 @@ public interface FestivalBookmarkRepository extends JpaRepository<FestivalBookma
     Page<FestivalBookmark> findByMemberId(Long memberId, Pageable pageable);
 
     Optional<FestivalBookmark> findByMemberIdAndFestivalId(Long memberId, Long festivalId);
+
+    @Query("SELECT fb.festival.id FROM FestivalBookmark fb " +
+            "WHERE fb.member.id = :memberId AND fb.festival.id IN :festivalIds")
+    List<Long> findBookmarkedFestivalIds(@Param("memberId") Long memberId,
+                                         @Param("festivalIds") Collection<Long> festivalIds);
 }
