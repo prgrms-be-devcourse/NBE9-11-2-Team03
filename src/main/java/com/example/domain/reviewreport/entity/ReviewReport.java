@@ -3,6 +3,7 @@ package com.example.domain.reviewreport.entity;
 import com.example.domain.member.entity.Member;
 import com.example.domain.review.entity.Review;
 import com.example.global.entity.BaseCreatedEntity;
+import jakarta.persistence.*;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -39,4 +40,6 @@ public class ReviewReport extends BaseCreatedEntity {
         this.reporter = reporter;
         this.review = review;
     }
+
+    //TODOS 생성자 구현
 }

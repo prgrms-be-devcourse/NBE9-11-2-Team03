@@ -4,13 +4,13 @@ import com.example.domain.admin.dto.AdminReviewBlindRes;
 import com.example.domain.admin.dto.AdminReviewReportPageRes;
 import com.example.domain.festival.entity.Festival;
 import com.example.domain.festival.repository.FestivalRepository;
-import com.example.domain.member.dto.response.MyReviewPageRes;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.repository.MemberRepository;
 import com.example.domain.review.dto.*;
 import com.example.domain.review.entity.Review;
 import com.example.domain.review.entity.ReviewStatus;
 import com.example.domain.review.repository.ReviewRepository;
+import com.example.domain.reviewlike.repository.ReviewLikeRepository;
 import com.example.global.exception.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +27,7 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final MemberRepository memberRepository;
     private final FestivalRepository festivalRepository;
+    private final ReviewLikeRepository reviewLikeRepository;
 
     //리뷰 작성
     @Transactional
@@ -83,10 +84,19 @@ public class ReviewService {
                 ReviewStatus.ACTIVE,
                 pageRequest);
 
+        Member loginMember = memberRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new UnauthorizedException("로그인한 회원 정보를 찾을 수 없습니다."));
+
         return ReviewPageResponseDto.builder()
                 .festivalId(festivalId)
                 .content(reviewPage.getContent().stream()
-                        .map(ReviewListResponseDto::from)
+                        .map(review -> {
+                            boolean liked = reviewLikeRepository.existsByMemberIdAndReviewId(
+                                    loginMember.getId(),
+                                    review.getId()
+                            );
+                            return ReviewListResponseDto.from(review, liked);
+                        })
                         .toList())
                 .page(reviewPage.getNumber())
                 .size(reviewPage.getSize())
