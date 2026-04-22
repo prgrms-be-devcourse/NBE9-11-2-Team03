@@ -30,7 +30,7 @@ public class AdminController {
      * @return 회원 목록 정보를 담은 RsData객체
      */
     @GetMapping("/members")
-    @Operation(summary = "회원조회", description = "회원 목록을 전체 조회합니다.")
+    @Operation(summary = "전체 회원조회", description = "회원 목록을 전체 조회합니다.")
     public ResponseEntity<RsData<MemberPageResponse>> getMemberList(
             @PageableDefault(
                     size = 10,
@@ -55,7 +55,7 @@ public class AdminController {
      * @return 신고 누적횟수가5회이상인 활동중인 회원목록을 RsData객체
      */
     @GetMapping("/members/reported")
-    @Operation(summary = "신고 누적 회원조회", description = "신고 누적 회원을 조회합니다.")
+    @Operation(summary = "신고 누적 회원조회", description = "신고 count가 누적된 회원을 조회합니다.")
     public ResponseEntity<RsData<MemberPageResponse>> getReportMemberList(
             @PageableDefault(
                     size = 10,
@@ -80,7 +80,7 @@ public class AdminController {
      * @return 신고 누적횟수가5회이상인 활동중인 리뷰목록을 RsData객체
      */
     @GetMapping("/reviews/reported")
-    @Operation(summary = "누적신고된 리뷰 조회", description = "신고횟수가N개 이상인 리뷰를 조회합니다.")
+    @Operation(summary = "누적신고된 리뷰 조회", description = "신고횟수가 N개 이상인 리뷰를 조회합니다.")
     public ResponseEntity<RsData<AdminReviewReportPageRes>> getReportReview(
             @PageableDefault(size = 10, sort = "reportCount", direction = Sort.Direction.DESC) Pageable pageable) {
         AdminReviewReportPageRes reviewList = reviewService.getReportReview(pageable);
@@ -100,7 +100,7 @@ public class AdminController {
      * @return 해당 리뷰 id, 상태,신고 횟수를 담은 RsData반환
      */
     @PatchMapping("/reviews/{reviewId}/status")
-    @Operation(summary = "악성리뷰 블라인드처리", description = "관리자가 악성리뷰를 블라인드처리할수있다.")
+    @Operation(summary = "악성리뷰 블라인드처리", description = "관리자가 악성리뷰를 블라인드처리할 수 있습니다.")
     public ResponseEntity<RsData<AdminReviewBlindRes>> processReview(
             @PathVariable Long reviewId,
             @RequestBody ReviewProcessRequest req
@@ -125,7 +125,7 @@ public class AdminController {
      * @return memberId와 status를 가진 RsData를 ResponseEntity로반환
      */
     @PatchMapping("/members/{memberId}/withdraw")
-    @Operation(summary = "회원 강제 탈퇴 처리", description = "관리자가 회원을 강제 탈퇴처리할 수 있다.")
+    @Operation(summary = "회원 강제 탈퇴 처리", description = "관리자가 회원을 강제 탈퇴처리할 수 있습니다.")
     public ResponseEntity<RsData<AdminMemberWithdrawnRes>> memberWithdraw(
             @PathVariable Long memberId
     ){

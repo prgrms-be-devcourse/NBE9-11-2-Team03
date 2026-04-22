@@ -14,6 +14,7 @@ import com.example.global.exception.BadRequestException;
 import com.example.global.exception.ForbiddenException;
 import com.example.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users/me")
+@Tag(name = "MyPage", description = "마이페이지 API")
 @RequiredArgsConstructor
 public class MyPageController {
     private final MyPageService myPageService;
@@ -41,7 +43,7 @@ public class MyPageController {
      * @return 로그인id, 이메일, 닉네임, 리뷰 수 ,찜수를 담은 DTo를 RSDATA로 감싸여 반환
      */
     @GetMapping()
-    @Operation(summary = "마이페이지:내정보 보기", description = "로그인한 사용자가 자신의 정보를 봅니다.")
+    @Operation(summary = "내정보 보기", description = "로그인한 사용자가 자신의 정보(닉네임, 이메일)를 봅니다.")
     public ResponseEntity<RsData<MyPageRes>> getMyPage(
             Authentication authentication
     ) {
@@ -108,7 +110,7 @@ public class MyPageController {
      * @return memberId와상태를 반환합니다. 리프레시토큰또한 제거합니다.
      */
     @DeleteMapping("/withdraw")
-    @Operation(summary = "회원 탈퇴 로직", description = "회원은 자신의 상태를 withdraw로변경(탈퇴)를 진행할 수 있다.")
+    @Operation(summary = "회원 탈퇴", description = "회원은 자신의 상태를 withdraw로변경(탈퇴)를 진행할 수 있습니다.")
     public ResponseEntity<RsData<WithdrawRes>> selfWithdraw(
             @Valid @RequestBody WithdrawReq req,
             Authentication authentication
