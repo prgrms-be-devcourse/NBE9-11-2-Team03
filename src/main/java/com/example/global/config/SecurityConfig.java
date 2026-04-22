@@ -70,7 +70,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
-                                "/h2-console/**"
+                                "/h2-console/**",
+                                "/uploads/**"
                         ).permitAll()
                         // 관리자 API는 ADMIN 권한이 있는 사용자나 개발용 ADMIN 토큰만 접근할 수 있다.
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

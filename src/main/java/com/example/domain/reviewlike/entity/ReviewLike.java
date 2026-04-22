@@ -36,4 +36,3 @@ public class ReviewLike extends BaseCreatedEntity {
         this.review = review;
     }
 }
-
