@@ -23,8 +23,9 @@ public class ReviewListResponseDto {
     private Integer likeCount;
     private Integer reportCount;
     private LocalDateTime createdAt;
+    private boolean liked;
 
-    public static ReviewListResponseDto from(Review review) {
+    public static ReviewListResponseDto from(Review review, boolean liked) {
         Member member = review.getMember();
         String displayName = (member.getStatus() == MemberStatus.WITHDRAWN)
                 ? "탈퇴된 회원입니다."
@@ -41,6 +42,7 @@ public class ReviewListResponseDto {
                 .likeCount(review.getLikeCount())
                 .reportCount(review.getReportCount())
                 .createdAt(review.getCreatedAt())
+                .liked(liked)
                 .build();
 
 
