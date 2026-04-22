@@ -46,7 +46,7 @@ public class ReviewService {
                 .orElseThrow(() -> new CustomNotFoundException("축제가 존재하지 않습니다."));
 
         // ++ 같은 회원이 같은 축제에 중복 리뷰 작성 불가
-        if (reviewRepository.existsByMemberIdAndFestivalId(member.getId(), festivalId)) {
+        if (reviewRepository.existsByMemberIdAndFestivalIdAndStatus(member.getId(), festivalId, ReviewStatus.ACTIVE)) {
             throw new ConflictException("이미 해당 축제에 리뷰를 작성했습니다.");
         }
 
