@@ -62,21 +62,18 @@ public class ReviewController {
         );
     }
 
-
-    @PatchMapping("/reviews/{reviewId}")
-    @Operation(summary = "축제 리뷰 수정", description = "본인이 작성한 리뷰를 수정합니다.")
+    //리뷰수정
+    @PatchMapping(value = "/reviews/{reviewId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiRes<ReviewUpdateResponseDto>> updateReview(
             @PathVariable Long reviewId,
-            @Valid @RequestBody ReviewUpdateRequestDto requestDto,
+            @Valid @RequestPart("requestDto") ReviewUpdateRequestDto requestDto,
+            @RequestPart(value = "image", required = false) MultipartFile image,
             Authentication authentication
-    ) {
+    ){
         String loginId = authentication.getName();
-
-        ReviewUpdateResponseDto response = reviewService.updateReview(reviewId, loginId, requestDto);
-
-        return ResponseEntity.ok(
-                new ApiRes<>(200, "리뷰가 성공적으로 수정되었습니다.", response)
-        );
+        // 서비스에 image 파일도 같이 넘겨줍니다.
+        ReviewUpdateResponseDto response = reviewService.updateReview(reviewId, loginId, requestDto, image);
+        return ResponseEntity.ok(new ApiRes<>(200, "리뷰 수정 완료", response));
     }
 
 

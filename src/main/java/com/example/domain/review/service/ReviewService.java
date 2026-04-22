@@ -108,7 +108,7 @@ public class ReviewService {
 
     //리뷰 수정
     @Transactional
-    public ReviewUpdateResponseDto updateReview(Long reviewId, String loginId, ReviewUpdateRequestDto requestDto) {
+    public ReviewUpdateResponseDto updateReview(Long reviewId, String loginId, ReviewUpdateRequestDto requestDto,MultipartFile imageFile) {
 
 
 
@@ -139,14 +139,23 @@ public class ReviewService {
         if (requestDto.getRating() < 1 || requestDto.getRating() > 5) {
             throw new BadRequestException("평점은 1점부터 5점까지 입력 가능합니다.");
         }
+        String updateImagePath=review.getImage();
 
-        // 7. 리뷰 수정
+        if (imageFile != null && !imageFile.isEmpty()) {
+            // 1. 기존 이미지가 있었다면 로컬 폴더에서 삭제
+            if (review.getImage() != null) {
+                fileStorageService.deleteFile(review.getImage()); // 밑에서 만들 삭제 메서드 호출
+            }
+            // 2. 새로운 이미지 저장
+            updateImagePath = fileStorageService.storeFile(imageFile);
+        }
+
+        // 7. 리뷰 수정 로직 (updateImagePath 적용)
         review.updateReview(
                 requestDto.getContent(),
-                requestDto.getImage(),
+                updateImagePath,
                 requestDto.getRating()
         );
-
         // 8. 평균 평점 재계산
         Festival festival = review.getFestival();
         Double averageRating = reviewRepository.calculateAverageRatingByFestivalId(festival.getId());
@@ -241,6 +250,8 @@ public class ReviewService {
                 review.getStatus(),
                 review.getReportCount()
         );
+
+
     }
 }
 

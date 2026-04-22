@@ -36,4 +36,16 @@ public class FileStorageService {
             throw new RuntimeException("파일 저장 실패", e);
         }
     }
+
+    public void deleteFile(String fileName) {
+        if (fileName == null || fileName.isEmpty()) return;
+
+        try {
+            Path filePath = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(fileName);
+            Files.deleteIfExists(filePath); // 물리적 파일 삭제!
+        } catch (IOException e) {
+            // 삭제 실패 시 에러를 던지기보단 로그만 남기는 것이 안전할 수 있습니다.
+            System.err.println("파일 삭제 실패: " + fileName);
+        }
+    }
 }
