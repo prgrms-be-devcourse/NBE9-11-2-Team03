@@ -162,7 +162,7 @@ public class MyPageTest {
 
         // 3. Then: 실제 DB 상태 검증
         // 영속성 컨텍스트를 갱신하기 위해 다시 조회합니다.
-        Member withdrawnMember = memberRepository.findByLoginId(loginId).orElseThrow();
+        Member withdrawnMember = memberRepository.findById(member.getId()).orElseThrow();
         assertThat(withdrawnMember.getStatus()).isEqualTo(MemberStatus.WITHDRAWN);
         assertThat(withdrawnMember.getNickname()).isEqualTo("탈퇴한회원_%d".formatted(member.getId()));
     }

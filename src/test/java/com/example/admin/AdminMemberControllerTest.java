@@ -5,6 +5,7 @@ import com.example.domain.festival.repository.FestivalRepository;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.entity.MemberStatus;
 import com.example.domain.member.repository.MemberRepository;
+import com.example.domain.review.controller.ReviewController;
 import com.example.domain.review.entity.Review;
 import com.example.domain.review.repository.ReviewRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -98,31 +100,31 @@ public class AdminMemberControllerTest {
 
     @Test
     @DisplayName("탈퇴한 회원이 작성한 리뷰를 조회하면 닉네임이 '탈퇴된 회원입니다.'로 표시된다.")
+    @WithMockUser(username = "visitor", roles = "USER") // 1. API를 호출할 유저 지정
     public void t5() throws Exception {
-        // 1. 회원 생성 및 탈퇴
+        Member visitor = new Member("visitor", "1234", "방문자", "visitor@test.com", "방문자닉넴", 0);
+        memberRepository.save(visitor);
         Member member = new Member("user5", "1234", "이름5", "user5@test.com", "탈퇴전이름", 0);
         memberRepository.save(member);
         member.withdraw(); // 상태: WITHDRAWN 변경
         memberRepository.save(member);
 
-        // 2. 축제 생성
+        // 4. 축제 생성
         Festival festival = new Festival("F_005", "축제5", "설명", "주소",
                 LocalDateTime.now(), LocalDateTime.now().plusDays(1), 127.0, 37.0);
         festivalRepository.save(festival);
 
-        // 3. 리뷰 생성 (상태가 ACTIVE여야 목록에 나옴)
+        // 5. 리뷰 생성
         Review review = new Review(member, festival, "탈퇴한 사람이 쓴 리뷰", null, 5);
         reviewRepository.save(review);
 
-        // 4. When: 일반 축제 리뷰 목록 조회
+        // 6. When: 축제 리뷰 목록 조회 API 호출
         mockMvc.perform(get("/api/festivals/" + festival.getId() + "/reviews")
                         .param("page", "0")
                         .param("size", "10")
-                        .param("memberId",member.getId().toString())
-                        .header("Authorization","Bearer dev-temp-token"))
+                        .param("memberId", member.getId().toString()))
                 .andExpect(status().isOk())
-                // resultCode가 200인지 확인
-                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.status").value("200"))
                 .andExpect(jsonPath("$.data.content[0].nickname").value("탈퇴된 회원입니다."))
                 .andDo(print());
     }

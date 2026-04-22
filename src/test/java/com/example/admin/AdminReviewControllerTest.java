@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -154,9 +155,35 @@ public class AdminReviewControllerTest {
         Review updatedReview = reviewRepository.findById(targetReview.getId()).get();
         assertThat(updatedReview.getReportCount()).isEqualTo(0); // 0으로 초기화 확인
     }
+    @Test
+    @DisplayName("전체 리뷰 목록 조회 시 블라인드된 리뷰는 노출되지 않아야 한다")
+    @WithMockUser(username = "user4", roles = "USER") // 헤더에 토큰을 넣는 대신 스프링 시큐리티 가짜 유저 주입
+    public void t4() throws Exception {
+        // Given: 리뷰 2개 생성 (하나 정상, 하나 블라인드)
+        Member author = new Member("user4", "1234", "이름4", "user4@test.com", "작성자4", 0);
+        memberRepository.save(author);
 
+        Festival festival = new Festival("F_004", "축제4", "설명", "주소",
+                LocalDateTime.now(), LocalDateTime.now().plusDays(1), 127.0, 37.0);
+        festivalRepository.save(festival);
 
+        Review normalReview = new Review(author, festival, "정상 리뷰", null, 5);
+        Review blindReview = new Review(author, festival, "블라인드 리뷰", null, 5);
 
+        // 블라인드 상태 강제 설정
+        ReflectionTestUtils.setField(blindReview, "status", ReviewStatus.BLIND);
 
+        reviewRepository.saveAll(List.of(normalReview, blindReview));
 
+        // When: 일반 사용자용 리뷰 목록 조회 API 호출 (에러 로그에 맞춰 URL과 파라미터 적용)
+        mockMvc.perform(get("/api/festivals/" + festival.getId() + "/reviews")
+                        .param("festivalId", festival.getContentId()))
+                // Then
+                .andExpect(status().isOk())
+                // 전체 개수가 1개여야 함 (blindReview 제외)
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                // 노출되는 리뷰는 '정상 리뷰'여야 함
+                .andExpect(jsonPath("$.data.content[0].content").value("정상 리뷰"))
+                .andDo(print());
+    }
 }
