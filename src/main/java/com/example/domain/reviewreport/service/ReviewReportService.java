@@ -40,6 +40,11 @@ public class ReviewReportService {
             throw new BadRequestException("삭제된 리뷰는 신고할 수 없습니다.");
         }
 
+        //본인 리뷰는 자기 자신이 신고할 수 없도록 막습니다
+        if (review.getMember().getId().equals(reporter.getId())) {
+            throw new BadRequestException("본인 리뷰는 신고할 수 없습니다.");
+        }
+
         // 한 회원이 같은 리뷰를 여러 번 신고하지 못하도록 먼저 중복 여부를 확인합니다.
         if (reviewReportRepository.existsByReporterIdAndReviewId(reporter.getId(), reviewId)) {
             throw new ConflictException("이미 신고한 리뷰입니다.");

@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 @SpringBootTest
 @ActiveProfiles("test")
 public class ReviewReportTest {
+
     @Autowired
     private ReviewReportService reviewReportService;
 
@@ -46,12 +47,29 @@ public class ReviewReportTest {
 
     private Festival savedFestival;
     private Review savedReview;
+    private Member writer;
+
     private final int THREAD_COUNT = 100; // 100명이 동시에 신고 요청
-    private List<Member> members = new ArrayList<>();
+    private List<Member> reporters = new ArrayList<>();
 
     @BeforeEach
     void setUp() {
-        // 1. 100명의 서로 다른 유저 생성 (중복 신고 방지 로직 우회 목적)
+        // 1. 리뷰 작성자를 먼저 따로 생성합니다.
+        //    본인 리뷰 신고 방지 로직이 추가되었기 때문에,
+        //    신고자 목록과 리뷰 작성자를 분리해야 동시성 테스트가 정확해집니다.
+        writer = memberRepository.save(
+                new Member(
+                        "리뷰작성자",
+                        "1234",
+                        "writer",
+                        "writer@test.com",
+                        "작성자닉네임",
+                        Role.USER
+                )
+        );
+
+        // 2. 100명의 서로 다른 신고자를 생성합니다.
+        //    중복 신고 방지 로직을 우회하기 위해 모든 신고자는 서로 다른 계정이어야 합니다.
         for (int i = 0; i < THREAD_COUNT; i++) {
             Member member = new Member(
                     "신고자" + i,
@@ -61,10 +79,10 @@ public class ReviewReportTest {
                     "닉네임" + i,
                     Role.USER
             );
-            members.add(memberRepository.save(member));
+            reporters.add(memberRepository.save(member));
         }
 
-        // 2. 축제 생성
+        // 3. 축제 생성
         savedFestival = festivalRepository.save(
                 Festival.builder()
                         .contentId("FEST-REPORT-CONCURRENCY")
@@ -82,10 +100,11 @@ public class ReviewReportTest {
                         .build()
         );
 
-        // 3. 리뷰 생성 (첫 번째 유저가 작성한 것으로 가정)
+        // 4. 리뷰 생성
+        //    리뷰는 신고자 중 한 명이 아니라, 별도로 만든 writer가 작성한 것으로 설정합니다.
         savedReview = reviewRepository.save(
                 new Review(
-                        members.get(0),
+                        writer,
                         savedFestival,
                         "어그로성 불쾌한 리뷰 내용입니다.",
                         "https://example.com/bad-review.jpg",
@@ -116,7 +135,7 @@ public class ReviewReportTest {
             executorService.submit(() -> {
                 try {
                     // 각기 다른 아이디로 리뷰 신고 요청
-                    String loginId = members.get(index).getLoginId();
+                    String loginId = reporters.get(index).getLoginId();
                     reviewReportService.reportReview(savedReview.getId(), loginId);
                 } finally {
                     latch.countDown(); // 스레드 작업 완료 시 카운트 감소
@@ -125,6 +144,7 @@ public class ReviewReportTest {
         }
 
         latch.await(); // 100개의 요청이 모두 처리될 때까지 메인 스레드 대기
+        executorService.shutdown();
 
         // then
         // 최신 리뷰 정보를 DB에서 다시 조회
