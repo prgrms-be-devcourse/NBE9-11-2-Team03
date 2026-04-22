@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -43,6 +44,7 @@ public class Review extends BaseEntity {
     @Column(nullable = false)
     private Integer reportCount = 0;
 
+    @Builder
     public Review(Member member, Festival festival, String content, String image, Integer rating) {
         this.member = member;
         this.festival = festival;
@@ -53,6 +55,7 @@ public class Review extends BaseEntity {
         this.likeCount = 0;
         this.reportCount = 0;
     }
+
 
     public void updateReview(String content, String image, Integer rating) {
         this.content = content;
@@ -86,4 +89,5 @@ public class Review extends BaseEntity {
             this.likeCount--;
         }
     }
+
 }
