@@ -80,6 +80,7 @@ public class ReviewLikeService {
 
         // 4. 좋아요 삭제
         reviewLikeRepository.delete(reviewLike);
+        reviewLikeRepository.flush();
 
         // 5. 리뷰 좋아요 수 감소
         reviewRepository.decreaseLikeCount(reviewId);
