@@ -12,7 +12,7 @@ public class ReviewUpdateRequestDto {
     @NotBlank(message = "리뷰 내용은 필수입니다.")
     private String content;
 
-    private String image;
+    private boolean deleteImage;
 
     @NotNull(message = "평점은 필수입니다.")
     @Min(value = 1, message = "평점은 1점부터 5점까지 입력 가능합니다.")
