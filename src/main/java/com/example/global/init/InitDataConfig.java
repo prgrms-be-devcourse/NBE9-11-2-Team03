@@ -46,8 +46,8 @@ public class InitDataConfig {
                 memberRepository.saveAll(dummyMembers);
                 System.out.println("✅ 초기 더미 회원 5명 DB 저장 완료!");
             }
-
-            // APi 확인용 Festival 데이터
+            /*
+            // APi 확인용 Festival 테스트 데이터
             if (festivalRepository.count() == 0) {
                 Festival festival = new Festival(
                         "FESTIVAL_001",                        // contentId (유니크)
@@ -60,7 +60,7 @@ public class InitDataConfig {
                         37.5665                                // 위도
                 );
                 festivalRepository.save(festival);
-            }
+            }*/
         };
     }
 }

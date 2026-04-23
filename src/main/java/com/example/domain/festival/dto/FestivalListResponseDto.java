@@ -1,9 +1,11 @@
 package com.example.domain.festival.dto;
 
 import com.example.domain.festival.entity.Festival;
+import com.example.domain.festival.entity.FestivalStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public record FestivalListResponseDto(
         Long id,
@@ -19,6 +21,11 @@ public record FestivalListResponseDto(
         @JsonProperty("isBookmarked") boolean isBookmarked
 ) {
     public static FestivalListResponseDto from(Festival festival, boolean isBookmarked) {
+        FestivalStatus status = calculateStatus(
+                festival.getStartDate(),
+                festival.getEndDate()
+        );
+
         return new FestivalListResponseDto(
                 festival.getId(),
                 festival.getTitle(),
@@ -26,11 +33,25 @@ public record FestivalListResponseDto(
                 festival.getStartDate().toLocalDate(),
                 festival.getEndDate().toLocalDate(),
                 festival.getAddress(),
-                festival.getStatus().name(),
+                status.name(),
                 festival.getViewCount(),
                 festival.getBookMarkCount(),
                 festival.getAverageRate(),
                 isBookmarked
         );
+    }
+
+    private static FestivalStatus calculateStatus(LocalDateTime startDate, LocalDateTime endDate) {
+        LocalDateTime now = LocalDateTime.now();
+
+        if (now.isBefore(startDate)) {
+            return FestivalStatus.UPCOMING;
+        }
+
+        if (now.isAfter(endDate)) {
+            return FestivalStatus.ENDED;
+        }
+
+        return FestivalStatus.ONGOING;
     }
 }
