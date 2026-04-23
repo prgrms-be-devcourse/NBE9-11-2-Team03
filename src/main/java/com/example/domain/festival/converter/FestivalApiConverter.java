@@ -234,7 +234,7 @@ public class FestivalApiConverter {
     }
 
     //축제 상태 계산 (UPCOMING, ONGOING, ENDED)
-    private FestivalStatus calculateStatus(LocalDateTime startDate, LocalDateTime endDate) {
+    public FestivalStatus calculateStatus(LocalDateTime startDate, LocalDateTime endDate) {
         LocalDateTime now = LocalDateTime.now();
 
         if (now.isBefore(startDate)) {
