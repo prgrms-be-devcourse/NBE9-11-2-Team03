@@ -8,6 +8,7 @@ import com.example.domain.festival.dto.external.FestivalApiResponse;
 import com.example.domain.festival.dto.response.FestivalSyncResult;
 import com.example.domain.festival.entity.DetailSyncPendingReason;
 import com.example.domain.festival.entity.Festival;
+import com.example.domain.festival.entity.FestivalStatus;
 import com.example.domain.festival.event.FestivalSyncEventPublisher;
 import com.example.domain.festival.repository.FestivalRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -417,7 +419,16 @@ public class FestivalSyncService {
         // 1건 재동기화가 정상 종료되었으므로 pending 제거
         pendingService.remove(contentId);
     }
+    @Transactional
+    public void updateFestivalStatuses() {
+        LocalDateTime now = LocalDateTime.now();
+        // 1. 종료일이 지난 축제를 ENDED로 변경
+        int endedCount = festivalRepository.updateStatusToEnded(FestivalStatus.ENDED, now);
 
+        // 2. 시작일이 오늘이거나 어제인데 아직 UPCOMING인 축제를 ONGOING으로 변경
+        int ongoingCount = festivalRepository.updateStatusToOngoing(FestivalStatus.ONGOING, FestivalStatus.UPCOMING, now);
 
+        System.out.println("[FestivalStatus] 상태 업데이트 완료: 진행중 전환 " + ongoingCount + "건, 종료 전환 " + endedCount + "건");
+    }
 }
 

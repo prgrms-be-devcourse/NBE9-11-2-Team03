@@ -151,6 +151,7 @@ public class FestivalRepositoryImpl implements FestivalRepositoryCustom{
 
     private BooleanExpression statusEquals(FestivalStatus status) {
         return status !=null?festival.status.eq(status):null;
+
     }
 
     private BooleanExpression regionCodeEquals(String regionCode) {
