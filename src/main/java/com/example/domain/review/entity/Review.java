@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -42,4 +43,51 @@ public class Review extends BaseEntity {
 
     @Column(nullable = false)
     private Integer reportCount = 0;
+
+    @Builder
+    public Review(Member member, Festival festival, String content, String image, Integer rating) {
+        this.member = member;
+        this.festival = festival;
+        this.content = content;
+        this.image = image;
+        this.rating = rating;
+        this.status = ReviewStatus.ACTIVE;
+        this.likeCount = 0;
+        this.reportCount = 0;
+    }
+
+
+    public void updateReview(String content, String image, Integer rating) {
+        this.content = content;
+        this.image = image;
+        this.rating = rating;
+    }
+
+    public void deleteReview() {
+        this.status = ReviewStatus.DELETED;
+    }
+
+    public void reviewBlind(){
+        this.status=ReviewStatus.BLIND;
+    }
+
+    public  void reportCountReset(){
+        this.reportCount=0;
+    }
+
+    // 리뷰가 신고될 때마다 누적 신고 수를 1 증가시킵니다.
+    public void increaseReportCount() {
+        this.reportCount++;
+    }
+    //리뷰 좋아요 카운트 및 좋아요 취소
+    public void increaseLikeCount() {
+        this.likeCount++;
+    }
+
+    public void decreaseLikeCount() {
+        if (this.likeCount > 0) {
+            this.likeCount--;
+        }
+    }
+
 }

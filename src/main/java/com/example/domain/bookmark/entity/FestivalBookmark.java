@@ -29,4 +29,8 @@ public class FestivalBookmark extends BaseCreatedEntity {
     private Festival festival;
 
     //TODOS 생성자 구현
+    public FestivalBookmark(Member member, Festival festival) {
+        this.member = member;
+        this.festival = festival;
+    }
 }

@@ -30,4 +30,9 @@ public class ReviewLike extends BaseCreatedEntity {
     private Review review;
 
     //TODOS 생성자 구현
+
+    public ReviewLike(Member member, Review review) {
+        this.member = member;
+        this.review = review;
+    }
 }
