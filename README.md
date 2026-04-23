@@ -219,36 +219,6 @@ src/
 
 ---
 
-## 🔐 인증 흐름
-
-```text
-로그인
-  └─> 아이디/비밀번호 검증
-        └─> Access Token 발급
-        └─> Refresh Token 발급
-        └─> Refresh Token DB 저장/갱신
-        └─> Refresh Token HttpOnly Cookie 저장
-
-API 요청
-  └─> Authorization: Bearer {Access Token}
-        └─> Spring Security Filter에서 JWT 검증
-              └─> 유효한 토큰 → 요청 처리
-              └─> 만료/유효하지 않은 토큰 → 401 응답
-
-토큰 재발급
-  └─> /api/auth/reissue 요청
-        └─> Refresh Token Cookie 검증
-              └─> 성공 → 새 Access Token 발급
-              └─> 실패 → 재로그인 필요
-
-로그아웃
-  └─> Refresh Token 비활성화
-  └─> Access Token blacklist 저장
-  └─> Refresh Token Cookie 삭제
-```
-
----
-
 ## 🗄️ ERD
 
 > TODO: ERD 이미지 추가
@@ -387,8 +357,8 @@ http://localhost:8080/swagger-ui/index.html
 
 | 이름 | GitHub | 역할 |
 |---|---|---|
-| 김진세 | TODO | Festival 도메인 |
-| 박현준 | TODO | Member/Auth 도메인 |
-| TODO | TODO | Review 도메인 |
-| TODO | TODO | Bookmark 도메인 |
-| TODO | TODO | Admin 도메인 |
+| 박현준 | [github.com/Phj1225](https://github.com/Phj1225) | Member / Auth: 회원가입, 로그인, JWT 인증 인가 |
+| 김지영 | [github.com/jyeoniop](https://github.com/jyeoniop) | Festival 조회: 다중 필터 검색, 정렬, 지도 탐색 |
+| 김진세 | [github.com/wlstp8473](https://github.com/wlstp8473) | Festival 공공 API 동기화: 데이터 수집/적재, 에러 핸들링 |
+| 한정목 | [github.com/mokmok2yam](https://github.com/mokmok2yam) | Member / Auth, Admin: 신고 리뷰 제재, 회원 강제 탈퇴 |
+| 김민혁 | [github.com/zenesix](https://github.com/zenesix) | Review / Like / Bookmark: 리뷰 CRUD, 좋아요/찜, 평점 계산, 신고 접수 |
