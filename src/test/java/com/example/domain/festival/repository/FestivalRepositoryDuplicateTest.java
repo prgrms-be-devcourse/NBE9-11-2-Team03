@@ -54,10 +54,9 @@ public class FestivalRepositoryDuplicateTest {
         // when & then
         Festival secondFestival = converter.toEntityFromListItem(secondItem);
 
-        festivalRepository.save(secondFestival);
-
+        // save 호출 시점에 바로 예외가 터질 수 있으므로, save와 flush를 모두 감싸줍니다.
         assertThrows(DataIntegrityViolationException.class, () -> {
-            // flush 시점에 UNIQUE 제약조건 위반이 실제로 터짐
+            festivalRepository.save(secondFestival);
             em.flush();
         });
     }
