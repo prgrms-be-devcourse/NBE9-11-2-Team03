@@ -5,6 +5,7 @@ import com.example.domain.festival.dto.FestivalDetailResponseDto;
 import com.example.domain.festival.dto.FestivalListResponseDto;
 import com.example.domain.festival.dto.FestivalSearchRequestDto;
 import com.example.domain.festival.entity.Festival;
+import com.example.domain.festival.entity.FestivalStatus;
 import com.example.domain.festival.repository.FestivalRepository;
 import com.example.domain.member.entity.Member;
 import com.example.domain.member.repository.MemberRepository;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
