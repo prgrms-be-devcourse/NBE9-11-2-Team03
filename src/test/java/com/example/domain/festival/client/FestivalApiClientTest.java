@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 public class FestivalApiClientTest {
-    //목적. FestivalApiClient 실제 호출 테스트(공공 API가 정상 호출되는지, 응답이 DTO로 잘 매핑되는지)
+    // 목적. FestivalApiClient 실제 호출 테스트(공공 API가 정상 호출되는지, 응답이 DTO로 잘 매핑되는지)
     @Autowired
     private FestivalApiClient festivalApiClient;
 
@@ -31,19 +31,41 @@ public class FestivalApiClientTest {
     @Test
     @DisplayName("공공 API 축제 상세 조회 테스트")
     void fetch_festival_detail_test() {
+        // 1. 먼저 목록을 조회하여 실제 존재하는 contentId를 하나 가져온다.
+        FestivalApiResponse listResponse = festivalApiClient.fetchFestivalList(1, 10, "20260101");
 
-        FestivalApiResponse response =
-                festivalApiClient.fetchFestivalDetail("694576");
+        assertThat(listResponse).isNotNull();
+        assertThat(listResponse.getResponse()).isNotNull();
+        assertThat(listResponse.getResponse().getBody()).isNotNull();
+        assertThat(listResponse.getResponse().getBody().getItems()).isNotNull();
+        assertThat(listResponse.getResponse().getBody().getItems().getItem()).isNotEmpty();
 
+        var firstItem = listResponse.getResponse().getBody().getItems().getItem().get(0);
+        String validContentId = firstItem.getContentid();
+
+        // 2. 실제 존재하는 contentId로 상세 조회
+        FestivalApiResponse response = festivalApiClient.fetchFestivalDetail(validContentId);
+
+        // 3. 단계별 검증
         assertThat(response).isNotNull();
+        assertThat(response.getResponse()).isNotNull();
+        assertThat(response.getResponse().getHeader()).isNotNull();
         assertThat(response.getResponse().getHeader().getResultCode()).isEqualTo("0000");
 
-        assertThat(response.getResponse().getBody().getItems().getItem()).isNotEmpty();
+        assertThat(response.getResponse().getBody())
+                .withFailMessage("API 응답의 Body가 null입니다.")
+                .isNotNull();
 
-        // 핵심 필드 확인
-        var item = response.getResponse().getBody().getItems().getItem().get(0);
+        assertThat(response.getResponse().getBody().getItems())
+                .withFailMessage("해당 ID(%s)에 대한 상세 정보(items)가 없습니다.", validContentId)
+                .isNotNull();
 
+        var items = response.getResponse().getBody().getItems().getItem();
+        assertThat(items).isNotEmpty();
+
+        // 4. 핵심 필드 확인
+        var item = items.get(0);
         assertThat(item.getOverview()).isNotNull();
-        assertThat(item.getHomepage()).isNotNull();
+        assertThat(item.getTitle()).isEqualTo(firstItem.getTitle());
     }
 }

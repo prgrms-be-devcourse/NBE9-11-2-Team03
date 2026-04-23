@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest
 @Transactional
 public class FestivalRepositoryDuplicateTest {
-    // 목적. 같은 contentId를 가진 축제를 두 번 저장 시, UNIQUE 제약조건에 의해 예외가 발생하는지 검증
+    // 목적: 같은 contentId를 가진 축제를 두 번 저장 시, UNIQUE 제약조건에 의해 예외가 발생하는지 검증
     @Autowired
     private FestivalRepository festivalRepository;
 
@@ -54,10 +54,10 @@ public class FestivalRepositoryDuplicateTest {
         // when & then
         Festival secondFestival = converter.toEntityFromListItem(secondItem);
 
-        festivalRepository.save(secondFestival);
-
+        // save 호출 시점에 바로 예외가 터질 수도 있고,
+        // flush 시점에 UNIQUE 제약조건 위반이 발생할 수도 있으므로 함께 검증
         assertThrows(DataIntegrityViolationException.class, () -> {
-            // flush 시점에 UNIQUE 제약조건 위반이 실제로 터짐
+            festivalRepository.save(secondFestival);
             em.flush();
         });
     }

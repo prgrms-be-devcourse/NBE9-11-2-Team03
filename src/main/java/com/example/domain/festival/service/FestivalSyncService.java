@@ -31,6 +31,37 @@ public class FestivalSyncService {
     private final FestivalSyncEventPublisher festivalSyncEventPublisher;
     private final FestivalDetailSyncPendingService pendingService;
 
+    /// 스케줄러 전용 실행 메서드 (로그 도입 X => 추후 확장 예정)
+    @Transactional
+    public void runScheduledSync(String eventStartDate, int pageNo, int numOfRows) {
+        System.out.println("[FestivalScheduler] 축제 동기화 시작");
+        System.out.println("pageNo=" + pageNo + ", numOfRows=" + numOfRows + ", eventStartDate=" + eventStartDate);
+
+        try {
+            FestivalSyncResult syncResult = syncFestivalList(pageNo, numOfRows, eventStartDate);
+
+            System.out.println("[FestivalScheduler] 목록 동기화 완료");
+            System.out.println("생성 건수: " + syncResult.getCreatedCount());
+            System.out.println("수정 건수: " + syncResult.getUpdatedCount());
+            System.out.println("실패 건수: " + syncResult.getFailedCount());
+
+            List<String> detailTargetContentIds =
+                    collectDetailEnrichTargetContentIds(syncResult.getChangedContentIds());
+
+            System.out.println("[FestivalScheduler] 상세 보강 대상 건수: " + detailTargetContentIds.size());
+
+            enrichFestivalDetailsByContentIds(detailTargetContentIds);
+
+            System.out.println("[FestivalScheduler] 상세 보강 완료");
+
+        } catch (Exception e) {
+            System.out.println("[FestivalScheduler] 축제 동기화 실패");
+            e.printStackTrace();
+        }
+
+        System.out.println("[FestivalScheduler] 축제 동기화 종료");
+    }
+
     // 목록 API 기반 기본 축제 데이터 저장/수정
     public FestivalSyncResult syncFestivalList(int pageNo, int numOfRows, String eventStartDate) {
 
