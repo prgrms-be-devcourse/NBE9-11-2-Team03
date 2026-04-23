@@ -2,6 +2,7 @@ package com.example.domain.festival.repository;
 
 import com.example.domain.festival.dto.FestivalSearchRequestDto;
 import com.example.domain.festival.entity.Festival;
+import com.example.domain.festival.entity.FestivalStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,4 +39,16 @@ public interface FestivalRepository extends JpaRepository<Festival, Long>, Festi
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Festival f SET f.bookMarkCount = f.bookMarkCount - 1 WHERE f.id = :festivalId AND f.bookMarkCount > 0")
     void decreaseBookmarkCount(@Param("festivalId") Long festivalId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Festival f SET f.status = :ongoing WHERE f.status = :upcoming AND f.startDate <= :now")
+    int updateStatusToOngoing(@Param("ongoing") FestivalStatus ongoing,
+                              @Param("upcoming") FestivalStatus upcoming,
+                              @Param("now") LocalDateTime now);
+
+    // [추가] 종료일이 지난 '진행중/예정' 축제를 '종료'로 변경
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Festival f SET f.status = :ended WHERE f.status != :ended AND f.endDate < :now")
+    int updateStatusToEnded(@Param("ended") FestivalStatus ended,
+                            @Param("now") LocalDateTime now);
 }

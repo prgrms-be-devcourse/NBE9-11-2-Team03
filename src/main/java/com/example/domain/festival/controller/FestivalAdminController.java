@@ -161,4 +161,12 @@ public class FestivalAdminController {
 
         return RsData.success(message, response);
     }
+
+    @PostMapping("/update-status")
+    @Operation(summary = "축제 상태 수동 갱신", description = "DB에 저장된 축제의 날짜(시작일/종료일)와 오늘 날짜를 비교하여 축제 상태(예정->진행중->종료)를 일괄 업데이트합니다.")
+    public RsData<Void> updateFestivalStatusManually() {
+        // 이전에 FestivalSyncService에 만들어두기로 한 상태 업데이트 로직 호출
+        festivalSyncService.updateFestivalStatuses();
+        return RsData.success("축제 상태(진행중/종료) 수동 갱신이 완료되었습니다.");
+    }
 }
